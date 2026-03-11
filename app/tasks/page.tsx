@@ -36,7 +36,7 @@ async function getTasks(filters: { agent?: string; vertical?: string; status?: s
   return (data ?? []) as Task[];
 }
 
-export const revalidate = 30;
+export const dynamic = "force-dynamic";
 
 interface PageProps {
   searchParams: { agent?: string; vertical?: string; status?: string };
