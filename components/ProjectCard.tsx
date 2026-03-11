@@ -76,6 +76,9 @@ export default function ProjectCard({
       {/* Top row */}
       <div className="flex items-start justify-between gap-2">
         <h3 className="text-[#F5F5F5] font-semibold text-sm leading-tight group-hover:text-[#D4AF37] transition-colors">
+          {project.code && (
+            <span className="text-[10px] font-mono bg-[#D4AF37]/10 text-[#D4AF37]/70 border border-[#D4AF37]/20 px-1.5 py-0.5 rounded mr-1.5 align-middle">{project.code}</span>
+          )}
           {project.name}
         </h3>
         <div className="flex gap-1.5 shrink-0">
