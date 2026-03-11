@@ -3,18 +3,21 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { FolderOpen } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 interface NavItem {
   href: string;
   label: string;
   icon: string;
+  lucideIcon?: React.ReactNode;
   badge?: number;
 }
 
 export default function Sidebar() {
   const pathname = usePathname();
   const [pendingCount, setPendingCount] = useState(0);
+  const [activeProjectsCount, setActiveProjectsCount] = useState(0);
 
   useEffect(() => {
     // Fetch pending approval count
@@ -24,9 +27,16 @@ export default function Sidebar() {
       .eq("approval_status", "pending")
       .then(({ count }) => setPendingCount(count ?? 0));
 
+    // Fetch active projects count
+    supabase
+      .from("projects")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "active")
+      .then(({ count }) => setActiveProjectsCount(count ?? 0));
+
     // Realtime subscription
     const channel = supabase
-      .channel("approvals-count")
+      .channel("sidebar-counts")
       .on("postgres_changes", { event: "*", schema: "public", table: "tasks" }, () => {
         supabase
           .from("tasks")
@@ -34,16 +44,24 @@ export default function Sidebar() {
           .eq("approval_status", "pending")
           .then(({ count }) => setPendingCount(count ?? 0));
       })
+      .on("postgres_changes", { event: "*", schema: "public", table: "projects" }, () => {
+        supabase
+          .from("projects")
+          .select("id", { count: "exact", head: true })
+          .eq("status", "active")
+          .then(({ count }) => setActiveProjectsCount(count ?? 0));
+      })
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
   }, []);
 
   const navItems: NavItem[] = [
-    { href: "/",           label: "Dashboard",    icon: "⬡" },
+    { href: "/",           label: "Dashboard",       icon: "⬡" },
     { href: "/tasks",      label: "Fila de Tarefas", icon: "◈" },
-    { href: "/approvals",  label: "Aprovações",   icon: "◇", badge: pendingCount },
-    { href: "/history",    label: "Histórico",    icon: "◎" },
+    { href: "/projects",   label: "Projetos",        icon: "□", lucideIcon: <FolderOpen size={14} />, badge: activeProjectsCount || undefined },
+    { href: "/approvals",  label: "Aprovações",      icon: "◇", badge: pendingCount },
+    { href: "/history",    label: "Histórico",       icon: "◎" },
   ];
 
   return (
@@ -80,11 +98,17 @@ export default function Sidebar() {
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <span className={active ? "text-[#D4AF37]" : "text-[#F5F5F5]/30"}>{item.icon}</span>
+                  <span className={active ? "text-[#D4AF37]" : "text-[#F5F5F5]/30"}>
+                    {item.lucideIcon ?? item.icon}
+                  </span>
                   {item.label}
                 </div>
                 {item.badge != null && item.badge > 0 && (
-                  <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
+                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center ${
+                    item.href === "/projects"
+                      ? "bg-[#D4AF37]/20 text-[#D4AF37] border border-[#D4AF37]/30"
+                      : "bg-red-500 text-white"
+                  }`}>
                     {item.badge}
                   </span>
                 )}
