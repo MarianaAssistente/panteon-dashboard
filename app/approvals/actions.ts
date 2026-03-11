@@ -1,10 +1,10 @@
 "use server";
 
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-server";
 import { revalidatePath } from "next/cache";
 
 export async function approveTask(taskId: string, feedback?: string) {
-  await supabase
+  await supabaseAdmin
     .from("tasks")
     .update({
       approval_status: "approved",
@@ -20,7 +20,7 @@ export async function approveTask(taskId: string, feedback?: string) {
 }
 
 export async function adjustTask(taskId: string, feedback: string) {
-  await supabase
+  await supabaseAdmin
     .from("tasks")
     .update({
       approval_status: "adjusted",
@@ -35,7 +35,7 @@ export async function adjustTask(taskId: string, feedback: string) {
 }
 
 export async function rejectTask(taskId: string, feedback: string) {
-  await supabase
+  await supabaseAdmin
     .from("tasks")
     .update({
       approval_status: "rejected",
