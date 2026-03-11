@@ -87,7 +87,7 @@ export default function ProjectsPage() {
           <select
             value={filterVertical}
             onChange={(e) => setFilterVertical(e.target.value)}
-            className="bg-white/4 border border-white/8 text-[#F5F5F5]/70 text-xs rounded-lg px-3 py-2 focus:outline-none focus:border-[#D4AF37]/40"
+            className="bg-[#1a1a1a] border border-[#D4AF37]/20 text-[#F5F5F5]/70 text-xs rounded-lg px-3 py-2 focus:outline-none focus:border-[#D4AF37]/40 cursor-pointer"
           >
             {VERTICALS.map((v) => (
               <option key={v} value={v} className="bg-[#111]">{v === "Todos" ? "Vertical: Todos" : v}</option>
@@ -98,7 +98,7 @@ export default function ProjectsPage() {
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="bg-white/4 border border-white/8 text-[#F5F5F5]/70 text-xs rounded-lg px-3 py-2 focus:outline-none focus:border-[#D4AF37]/40"
+            className="bg-[#1a1a1a] border border-[#D4AF37]/20 text-[#F5F5F5]/70 text-xs rounded-lg px-3 py-2 focus:outline-none focus:border-[#D4AF37]/40 cursor-pointer"
           >
             {STATUSES.map((s) => (
               <option key={s} value={s} className="bg-[#111]">
@@ -111,7 +111,7 @@ export default function ProjectsPage() {
           <select
             value={filterAgent}
             onChange={(e) => setFilterAgent(e.target.value)}
-            className="bg-white/4 border border-white/8 text-[#F5F5F5]/70 text-xs rounded-lg px-3 py-2 focus:outline-none focus:border-[#D4AF37]/40"
+            className="bg-[#1a1a1a] border border-[#D4AF37]/20 text-[#F5F5F5]/70 text-xs rounded-lg px-3 py-2 focus:outline-none focus:border-[#D4AF37]/40 cursor-pointer"
           >
             {AGENTS.map((a) => (
               <option key={a} value={a} className="bg-[#111]">
