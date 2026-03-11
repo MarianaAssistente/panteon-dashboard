@@ -17,6 +17,7 @@ export interface Project {
   start_date?: string;
   deadline?: string;
   progress: number;
+  code?: string;
   tags?: string[];
   created_at: string;
   updated_at: string;
