@@ -1,28 +1,30 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const DASHBOARD_PASSWORD = process.env.DASHBOARD_PASSWORD ?? "";
-const COOKIE_NAME = "panteon_auth";
-const COOKIE_MAX_AGE = 60 * 60 * 24 * 7; // 7 days
-
 export async function POST(request: NextRequest) {
-  const { password } = await request.json();
+  try {
+    const body = await request.json();
+    const password = (body.password ?? "").trim();
+    const expected = (process.env.DASHBOARD_PASSWORD ?? "").trim();
 
-  if (!DASHBOARD_PASSWORD) {
-    return NextResponse.json({ error: "Password not configured" }, { status: 500 });
+    if (!expected) {
+      return NextResponse.json({ error: "Not configured" }, { status: 500 });
+    }
+
+    if (password !== expected) {
+      return NextResponse.json({ error: "Invalid" }, { status: 401 });
+    }
+
+    const response = NextResponse.json({ ok: true });
+    response.cookies.set("panteon_auth", expected, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 60 * 60 * 24 * 7,
+      path: "/",
+    });
+    return response;
+  } catch {
+    return NextResponse.json({ error: "Bad request" }, { status: 400 });
   }
-
-  if (password !== DASHBOARD_PASSWORD) {
-    return NextResponse.json({ error: "Invalid password" }, { status: 401 });
-  }
-
-  const response = NextResponse.json({ ok: true });
-  response.cookies.set(COOKIE_NAME, DASHBOARD_PASSWORD, {
-    httpOnly: true,
-    secure: true,
-    sameSite: "strict",
-    maxAge: COOKIE_MAX_AGE,
-    path: "/",
-  });
-  return response;
 }
