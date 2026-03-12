@@ -234,7 +234,7 @@ function TaskCard({ task, dependsOnTasks, blockedByThis, onClick }: {
       </div>
 
       {/* Project color stripe */}
-      <div className="h-0.5 w-full" style={{ backgroundColor: projColor }} />
+      <div className="h-2 w-full mx-0 rounded-b-xl" style={{ backgroundColor: projColor }} />
     </button>
   );
 }
