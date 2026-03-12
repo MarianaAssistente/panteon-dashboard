@@ -112,14 +112,25 @@ function AgentNode({
           : "border-[#D4AF37]/10 bg-[#111] hover:border-[#D4AF37]/30 hover:bg-[#D4AF37]/5 hover:scale-102"
       }`}
     >
-      <div
-        className="w-14 h-14 rounded-full flex items-center justify-center text-2xl border-2 transition-all duration-200"
-        style={{
-          backgroundColor: `${agent.color}15`,
-          borderColor: selected ? agent.color : `${agent.color}35`,
-        }}
-      >
-        {agent.emoji}
+      <div className="relative w-16 h-16">
+        {/* Foto do agente */}
+        <img
+          src={`/avatars/avatar-${agent.id}.png`}
+          alt={agent.name}
+          className="w-16 h-16 rounded-full object-cover border-2 transition-all duration-200"
+          style={{ borderColor: selected ? agent.color : `${agent.color}50` }}
+          onError={(e) => {
+            // Fallback para emoji se a imagem não carregar
+            (e.target as HTMLImageElement).style.display = "none";
+          }}
+        />
+        {/* Emoji sobreposto no canto inferior direito */}
+        <span
+          className="absolute bottom-0 right-0 text-sm leading-none bg-[#0D0D0D] rounded-full w-5 h-5 flex items-center justify-center border"
+          style={{ borderColor: `${agent.color}40` }}
+        >
+          {agent.emoji}
+        </span>
       </div>
       <div className="text-center">
         <p className="text-[#F5F5F5] text-sm font-semibold leading-tight">{agent.name}</p>
