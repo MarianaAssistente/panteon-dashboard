@@ -211,7 +211,7 @@ export default function DashboardPage() {
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 pt-1">
           {data.agents.map((agent) => {
             const isActive = agentSessionStatus(data.lastActivityByAgent[agent.id]) === "active";
-            const agentDisplay = { ...agent, status: isActive ? "working" : "idle" };
+            const agentDisplay = { ...agent, status: (isActive ? "working" : "idle") as import("@/lib/supabase").AgentStatus };
             return (
               <AgentCard
                 key={agent.id}
