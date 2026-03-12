@@ -206,6 +206,24 @@ export default function DashboardPage() {
         <CostWidget dayCost={data.dayCost} monthCost={data.monthCost} />
       </div>
 
+      {/* Agentes — ACIMA das atividades */}
+      <CollapsibleSection title="Agentes do Panteão" color="#D4AF37" count={data.agents.length} defaultOpen>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 pt-1">
+          {data.agents.map((agent) => {
+            const isActive = agentSessionStatus(data.lastActivityByAgent[agent.id]) === "active";
+            const agentDisplay = { ...agent, status: isActive ? "working" : "idle" };
+            return (
+              <AgentCard
+                key={agent.id}
+                agent={agentDisplay}
+                lastTask={data.lastTaskByAgent[agent.id]}
+                pendingCount={data.pendingByAgent[agent.id] ?? 0}
+              />
+            );
+          })}
+        </div>
+      </CollapsibleSection>
+
       {/* Concluídas hoje */}
       <CollapsibleSection title="Concluídas hoje" color="#4ADE80" count={data.todayDone.length} defaultOpen>
         {data.todayDone.map(task => <TaskRow key={task.id} task={task} />)}
@@ -219,29 +237,6 @@ export default function DashboardPage() {
       {/* Pendentes / Backlog */}
       <CollapsibleSection title="Pendentes / Backlog" color="#71717A" count={data.backlogTasks.length} defaultOpen={false}>
         {data.backlogTasks.map(task => <TaskRow key={task.id} task={task} />)}
-      </CollapsibleSection>
-
-      {/* Agentes — APÓS as atividades */}
-      <CollapsibleSection title="Agentes do Panteão" color="#D4AF37" count={data.agents.length} defaultOpen>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 pt-1">
-          {data.agents.map((agent) => {
-            const isActive = agentSessionStatus(data.lastActivityByAgent[agent.id]) === "active";
-            return (
-              <div key={agent.id} className="relative">
-                <AgentCard
-                  agent={agent}
-                  lastTask={data.lastTaskByAgent[agent.id]}
-                  pendingCount={data.pendingByAgent[agent.id] ?? 0}
-                />
-                {/* Indicador de sessão real */}
-                <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5">
-                  <span className={`w-2 h-2 rounded-full ${isActive ? "bg-green-400 animate-pulse" : "bg-zinc-600"}`} />
-                  <span className="text-[9px] text-[#F5F5F5]/25">{isActive ? "ativo" : "idle"}</span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
       </CollapsibleSection>
 
       {/* Última atualização */}
