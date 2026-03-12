@@ -3,9 +3,6 @@ import { NextRequest } from "next/server";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-// Aceitar certificado self-signed do relay na VPS
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
-
 export async function POST(req: NextRequest) {
   const { messages } = await req.json();
 
@@ -24,11 +21,7 @@ export async function POST(req: NextRequest) {
         "Content-Type": "application/json",
         "X-Relay-Secret": RELAY_SECRET,
       },
-      body: JSON.stringify({
-        messages,
-        stream: true,
-        user: "dashboard-chat",
-      }),
+      body: JSON.stringify({ messages, stream: true, user: "dashboard-chat" }),
       // @ts-ignore
       signal: AbortSignal.timeout(55000),
     });
