@@ -72,7 +72,7 @@ export default function ProjectCard({
   return (
     <div
       onClick={onClick}
-      className="cursor-pointer bg-[#111111] border border-[#D4AF37]/10 rounded-2xl p-5 flex flex-col gap-4 hover:border-[#D4AF37]/30 hover:bg-[#D4AF37]/4 transition-all duration-200 group"
+      className="relative cursor-pointer bg-[#111111] border border-[#D4AF37]/10 rounded-2xl p-5 flex flex-col gap-4 hover:border-[#D4AF37]/30 hover:bg-[#D4AF37]/4 transition-all duration-200 group"
     >
       {/* Top row */}
       <div className="flex items-start justify-between gap-2">
@@ -145,40 +145,38 @@ export default function ProjectCard({
       {(project.notion_url || project.trello_url || project.drive_url) && (
         <div className="flex gap-2 border-t border-white/5 pt-3">
           {project.notion_url && (
-            <a
-              href={project.notion_url}
-              target="_blank"
-              rel="noopener noreferrer"
+            <a href={project.notion_url} target="_blank" rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
-              className="flex items-center gap-1 text-[10px] text-[#F5F5F5]/30 hover:text-[#F5F5F5]/70 transition-colors"
-            >
+              className="flex items-center gap-1 text-[10px] text-[#F5F5F5]/30 hover:text-[#F5F5F5]/70 transition-colors">
               <ExternalLink size={10} /> Notion
             </a>
           )}
           {project.trello_url && (
-            <a
-              href={project.trello_url}
-              target="_blank"
-              rel="noopener noreferrer"
+            <a href={project.trello_url} target="_blank" rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
-              className="flex items-center gap-1 text-[10px] text-[#F5F5F5]/30 hover:text-[#F5F5F5]/70 transition-colors"
-            >
+              className="flex items-center gap-1 text-[10px] text-[#F5F5F5]/30 hover:text-[#F5F5F5]/70 transition-colors">
               <ExternalLink size={10} /> Trello
             </a>
           )}
           {project.drive_url && (
-            <a
-              href={project.drive_url}
-              target="_blank"
-              rel="noopener noreferrer"
+            <a href={project.drive_url} target="_blank" rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
-              className="flex items-center gap-1 text-[10px] text-[#F5F5F5]/30 hover:text-[#F5F5F5]/70 transition-colors"
-            >
+              className="flex items-center gap-1 text-[10px] text-[#F5F5F5]/30 hover:text-[#F5F5F5]/70 transition-colors">
               <ExternalLink size={10} /> Drive
             </a>
           )}
         </div>
       )}
+
+      {/* Project color stripe */}
+      <div className="absolute bottom-0 left-0 right-0 h-0.5 rounded-b-2xl"
+        style={{ backgroundColor: Object.entries(verticalColors).find(([k]) => k === project.vertical) ? 
+          project.vertical === "STM Capital" ? "#D4AF37" :
+          project.vertical === "STM Digital" ? "#9B7EC8" :
+          project.vertical === "AgiSales" ? "#06B6D4" :
+          project.vertical === "Interno" ? "#8BA888" :
+          project.vertical === "STM Consultancy" ? "#4ADE80" : "#F472B6"
+          : "#D4AF37" }} />
     </div>
   );
 }

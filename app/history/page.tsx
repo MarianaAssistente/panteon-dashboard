@@ -23,6 +23,7 @@ export default function HistoryPage() {
     setLoading(true);
 
     Promise.all([
+      // Busca deliveries reais
       supabase
         .from("deliveries")
         .select("*, agents(id, name, role), tasks(title)")
@@ -33,8 +34,30 @@ export default function HistoryPage() {
         .select("*, agents(id, name, role)")
         .gte("date", since.split("T")[0])
         .order("date", { ascending: false }),
-    ]).then(([dRes, mRes]) => {
-      setDeliveries((dRes.data ?? []) as Delivery[]);
+      // Fallback: tasks concluídas no período
+      supabase
+        .from("tasks")
+        .select("id, code, title, agent_id, vertical, deliverable_url, completed_at, updated_at")
+        .eq("status", "done")
+        .gte("updated_at", since)
+        .order("updated_at", { ascending: false }),
+    ]).then(([dRes, mRes, tRes]) => {
+      let dels = (dRes.data ?? []) as Delivery[];
+      // Se não há deliveries, usar tasks done como fallback
+      if (dels.length === 0 && tRes.data && tRes.data.length > 0) {
+        dels = tRes.data.map((t: any) => ({
+          id: t.id,
+          task_id: t.id,
+          agent_id: t.agent_id,
+          title: t.title,
+          description: t.code ? `${t.code} · ${t.vertical ?? ""}` : t.vertical ?? "",
+          drive_url: t.deliverable_url,
+          status: "approved" as const,
+          created_at: t.completed_at ?? t.updated_at,
+          agents: { id: t.agent_id, name: t.agent_id, role: "" },
+        }));
+      }
+      setDeliveries(dels);
       setMetrics((mRes.data ?? []) as DailyMetric[]);
       setLoading(false);
     });

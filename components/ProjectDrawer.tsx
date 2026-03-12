@@ -19,9 +19,12 @@ function agentName(id?: string) {
 
 interface RelatedTask {
   id: string;
+  code?: string;
   title: string;
   status: string;
   agent_id?: string;
+  project_code?: string;
+  depends_on?: string[];
 }
 
 export default function ProjectDrawer({
@@ -39,13 +42,18 @@ export default function ProjectDrawer({
     if (!project) return;
     setProgress(project.progress);
 
-    supabase
+    // Busca por project_code se disponível, senão por vertical
+    const q = supabase
       .from("tasks")
-      .select("id, title, status, agent_id")
-      .eq("vertical", project.vertical)
+      .select("id, code, title, status, agent_id, project_code, depends_on")
+      .order("priority")
       .order("created_at", { ascending: false })
-      .limit(10)
-      .then(({ data }) => setTasks(data ?? []));
+      .limit(30);
+
+    (project.code
+      ? q.eq("project_code", project.code)
+      : q.eq("vertical", project.vertical)
+    ).then(({ data }) => setTasks((data ?? []) as RelatedTask[]));
   }, [project]);
 
   const saveProgress = useCallback(async () => {
@@ -201,29 +209,31 @@ export default function ProjectDrawer({
             </div>
           )}
 
-          {/* Related tasks */}
-          <div className="space-y-2">
-            <p className="text-[10px] text-[#F5F5F5]/30 uppercase tracking-wider">
-              Tarefas — {project.vertical}
-            </p>
-            {tasks.length === 0 ? (
-              <p className="text-[#F5F5F5]/20 text-xs italic">Nenhuma tarefa encontrada.</p>
-            ) : (
-              <div className="space-y-1.5">
-                {tasks.map((t) => (
-                  <div
-                    key={t.id}
-                    className="flex items-center justify-between bg-white/3 rounded-lg px-3 py-2"
-                  >
-                    <span className="text-xs text-[#F5F5F5]/70 truncate flex-1 mr-2">{t.title}</span>
-                    <span className={`text-[10px] shrink-0 ${statusColorMap[t.status] ?? "text-zinc-400"}`}>
-                      {t.status}
-                    </span>
+          {/* Tasks por status */}
+          {(["in_progress","review","blocked","backlog","done"] as const).map(status => {
+            const group = tasks.filter(t => t.status === status);
+            if (group.length === 0) return null;
+            const labels: Record<string, string> = {
+              in_progress: "Em Andamento", review: "Em Review", blocked: "Bloqueado",
+              backlog: "Pendentes / Próximas", done: "Concluídas"
+            };
+            return (
+              <div key={status} className="space-y-1.5">
+                <p className={`text-[10px] font-semibold uppercase tracking-wider ${statusColorMap[status] ?? "text-zinc-400"}`}>
+                  {labels[status]} ({group.length})
+                </p>
+                {group.map(t => (
+                  <div key={t.id} className="flex items-center gap-2 bg-white/3 border border-white/5 rounded-lg px-3 py-2">
+                    {(t as any).code && <span className="text-[10px] font-mono text-[#D4AF37]/35 flex-shrink-0">{(t as any).code}</span>}
+                    <span className="text-xs text-[#F5F5F5]/65 flex-1 truncate">{t.title}</span>
+                    {t.agent_id && <span className="text-[10px] flex-shrink-0">
+                      {{"mariana":"👑","atena":"🦉","hefesto":"⚒️","apollo":"🎨","afrodite":"✨","hera":"🏛️","ares":"⚔️","hestia":"🕯️"}[t.agent_id] ?? ""}
+                    </span>}
                   </div>
                 ))}
               </div>
-            )}
-          </div>
+            );
+          })}
         </div>
       </div>
     </>
