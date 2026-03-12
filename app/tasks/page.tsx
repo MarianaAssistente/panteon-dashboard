@@ -92,7 +92,7 @@ export default function TasksPage() {
   const projectCodes = Array.from(new Set(tasks.map((t: any) => t.project_code).filter(Boolean))).sort() as string[];
 
   return (
-    <div className="flex h-full">
+    <>
       <div className="flex-1 overflow-auto p-6">
         {/* Header */}
         <div className="mb-6 flex items-center justify-between flex-wrap gap-3">
@@ -168,16 +168,22 @@ export default function TasksPage() {
         )}
       </div>
 
-      {/* Detail panel */}
+      {/* Detail panel — overlay fixo (fora do flex, no nível raiz) */}
       {selected && (
-        <TaskDetailPanel
-          task={selected}
-          dependsOnTasks={(selected.depends_on ?? []).map((c: string) => taskByCode[c]).filter(Boolean)}
-          blockedByThis={(dependents[selected.code] ?? []).map(c => taskByCode[c]).filter(Boolean)}
-          onClose={() => setSelected(null)}
-        />
+        <>
+          <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
+            onClick={() => setSelected(null)}
+          />
+          <TaskDetailPanel
+            task={selected}
+            dependsOnTasks={(selected.depends_on ?? []).map((c: string) => taskByCode[c]).filter(Boolean)}
+            blockedByThis={(dependents[selected.code] ?? []).map(c => taskByCode[c]).filter(Boolean)}
+            onClose={() => setSelected(null)}
+          />
+        </>
       )}
-    </div>
+    </>
   );
 }
 
@@ -246,7 +252,7 @@ function TaskDetailPanel({ task, dependsOnTasks, blockedByThis, onClose }: {
   const statusCol = STATUS_COLUMNS.find(s => s.key === task.status);
 
   return (
-    <aside className="w-[400px] h-full bg-[#0A0A0A] border-l border-[#D4AF37]/10 flex flex-col overflow-hidden flex-shrink-0">
+    <aside className="drawer-slide-in fixed top-0 right-0 h-full w-full max-w-[440px] bg-[#0D0D0D] border-l border-[#D4AF37]/15 flex flex-col overflow-y-auto z-50 shadow-2xl shadow-black/60">
       {/* Color bar */}
       <div className="h-1 w-full" style={{ backgroundColor: projColor }} />
 

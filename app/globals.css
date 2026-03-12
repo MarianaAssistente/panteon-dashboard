@@ -31,3 +31,12 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(212, 175, 55, 0.6);
 }
+
+/* Drawer slide-in animation */
+@keyframes slideInRight {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}
+.drawer-slide-in {
+  animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}

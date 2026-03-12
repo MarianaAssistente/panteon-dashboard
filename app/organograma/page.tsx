@@ -12,9 +12,9 @@ export default function OrganogramaPage() {
   const reports = AGENTS_PROFILE.filter((a) => a.reports_to === "mariana");
 
   return (
-    <div className="flex h-full min-h-screen">
+    <>
       {/* Main org chart area */}
-      <div className="flex-1 overflow-auto p-6">
+      <div className="overflow-auto p-6 min-h-screen">
         <div className="mb-8">
           <h1 className="text-xl font-semibold text-[#F5F5F5]">Organograma</h1>
           <p className="text-[#F5F5F5]/40 text-sm mt-1">Clique em um agente para ver detalhes completos</p>
@@ -77,14 +77,20 @@ export default function OrganogramaPage() {
         </div>
       </div>
 
-      {/* Side panel */}
+      {/* Side panel — overlay fixo (fora do container de scroll, no nível raiz) */}
       {selectedAgent && (
-        <AgentOrgPanel
-          agent={selectedAgent}
-          onClose={() => setSelectedAgent(null)}
-        />
+        <>
+          <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
+            onClick={() => setSelectedAgent(null)}
+          />
+          <AgentOrgPanel
+            agent={selectedAgent}
+            onClose={() => setSelectedAgent(null)}
+          />
+        </>
       )}
-    </div>
+    </>
   );
 }
 

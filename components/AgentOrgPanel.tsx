@@ -101,7 +101,7 @@ export default function AgentOrgPanel({
   const totalDone = recentTasks.length;
 
   return (
-    <aside className="w-[420px] h-full bg-[#0A0A0A] border-l border-[#D4AF37]/10 flex flex-col overflow-hidden">
+    <aside className="drawer-slide-in fixed top-0 right-0 h-full w-full max-w-[440px] bg-[#0D0D0D] border-l border-[#D4AF37]/15 flex flex-col overflow-y-auto z-50 shadow-2xl shadow-black/60">
       {/* Header */}
       <div className="p-6 border-b border-[#D4AF37]/10 flex items-start justify-between">
         <div className="flex items-center gap-4">
