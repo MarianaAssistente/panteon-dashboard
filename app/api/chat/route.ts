@@ -3,6 +3,9 @@ import { NextRequest } from "next/server";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
+// Aceitar certificado self-signed do relay na VPS
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+
 export async function POST(req: NextRequest) {
   const { messages } = await req.json();
 
@@ -13,25 +16,31 @@ export async function POST(req: NextRequest) {
     return new Response(JSON.stringify({ error: "Relay not configured" }), { status: 503 });
   }
 
-  const upstream = await fetch(RELAY_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Relay-Secret": RELAY_SECRET,
-    },
-    body: JSON.stringify({
-      messages,
-      stream: true,
-      user: "dashboard-chat",
-    }),
-  });
-
-  if (!upstream.ok) {
-    const err = await upstream.text();
-    return new Response(JSON.stringify({ error: err }), { status: upstream.status });
+  let upstream: Response;
+  try {
+    upstream = await fetch(RELAY_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Relay-Secret": RELAY_SECRET,
+      },
+      body: JSON.stringify({
+        messages,
+        stream: true,
+        user: "dashboard-chat",
+      }),
+      // @ts-ignore
+      signal: AbortSignal.timeout(55000),
+    });
+  } catch (err: any) {
+    return new Response(JSON.stringify({ error: err.message }), { status: 502 });
   }
 
-  // Stream SSE direto para o browser
+  if (!upstream.ok) {
+    const errText = await upstream.text();
+    return new Response(JSON.stringify({ error: errText }), { status: upstream.status });
+  }
+
   return new Response(upstream.body, {
     headers: {
       "Content-Type": "text/event-stream",
