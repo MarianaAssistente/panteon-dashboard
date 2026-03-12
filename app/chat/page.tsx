@@ -34,12 +34,14 @@ export default function ChatPage() {
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const handleFiles = useCallback(async (files: FileList) => {
+  const handleFiles = useCallback(async (files: FileList | File[]) => {
     const newAttachments: Attachment[] = [];
     for (const file of Array.from(files)) {
       const dataUrl = await new Promise<string>((resolve) => {
@@ -66,9 +68,7 @@ export default function ChatPage() {
         .map((i) => i.getAsFile())
         .filter(Boolean) as File[];
       if (files.length > 0) {
-        const dt = new DataTransfer();
-        files.forEach((f) => dt.items.add(f));
-        handleFiles(dt.files);
+        handleFiles(files as unknown as FileList);
       }
     },
     [handleFiles]
@@ -273,7 +273,7 @@ export default function ChatPage() {
 
               {/* Timestamp */}
               <span className="text-[10px] text-[#F5F5F5]/15 px-1">
-                {format(msg.timestamp, "HH:mm", { locale: ptBR })}
+                {mounted ? format(msg.timestamp, "HH:mm", { locale: ptBR }) : ""}
               </span>
             </div>
           </div>
