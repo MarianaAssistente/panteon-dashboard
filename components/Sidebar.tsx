@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { FolderOpen, BookOpen } from "lucide-react";
+import { FolderOpen, BookOpen, Network } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 interface NavItem {
@@ -62,6 +62,7 @@ export default function Sidebar() {
     { href: "/projects",   label: "Projetos",        icon: "□", lucideIcon: <FolderOpen size={14} />, badge: activeProjectsCount || undefined },
     { href: "/knowledge",  label: "Knowledge Base",  icon: "🧠", lucideIcon: <BookOpen size={14} /> },
     { href: "/approvals",  label: "Aprovações",      icon: "◇", badge: pendingCount },
+    { href: "/organograma", label: "Organograma",     icon: "◉", lucideIcon: <Network size={14} /> },
     { href: "/history",    label: "Histórico",       icon: "◎" },
   ];
 
