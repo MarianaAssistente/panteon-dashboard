@@ -8,7 +8,7 @@ import TaskDrawer from "@/components/TaskDrawer";
 import StatusBadge from "@/components/StatusBadge";
 import { format, formatDistanceToNow, isToday, subMinutes, subHours } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { RefreshCw, CheckCircle2, Clock, Hourglass, Activity } from "lucide-react";
+import { RefreshCw, CheckCircle2, Hourglass, Activity, ChevronDown, ChevronUp } from "lucide-react";
 
 const REFRESH_INTERVAL_MS = 15 * 60 * 1000; // 15 minutos
 
@@ -58,9 +58,10 @@ async function fetchData(): Promise<DashboardData> {
       supabase.from("daily_metrics").select("estimated_cost_usd").eq("date", todayStart.toISOString().split("T")[0]),
       // Custo mês
       supabase.from("daily_metrics").select("estimated_cost_usd").gte("date", monthStart),
-      // Última atividade por agente
-      supabase.from("tasks").select("agent_id, updated_at")
-        .order("updated_at", { ascending: false }).limit(100),
+      // Última atividade por agente: APENAS tasks in_progress ou review (evita falso-positivo de bulk updates)
+      supabase.from("tasks").select("agent_id, updated_at, title")
+        .in("status", ["in_progress", "review"])
+        .order("updated_at", { ascending: false }).limit(50),
     ]);
 
   const pendingByAgent: Record<string, number> = {};
@@ -70,8 +71,10 @@ async function fetchData(): Promise<DashboardData> {
 
   const lastTaskByAgent: Record<string, string> = {};
   const lastActivityByAgent: Record<string, string> = {};
+  // Atividade = só conta se a task está em_progresso ou review E foi atualizada nas últimas 2h
+  const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
   for (const t of activityRes.data ?? []) {
-    if (t.agent_id) {
+    if (t.agent_id && t.updated_at > twoHoursAgo) {
       if (!lastActivityByAgent[t.agent_id]) {
         lastActivityByAgent[t.agent_id] = t.updated_at;
       }
@@ -99,12 +102,10 @@ async function fetchData(): Promise<DashboardData> {
   };
 }
 
-function agentSessionStatus(agentId: string, lastActivity: string | undefined): "active" | "recent" | "idle" {
+function agentSessionStatus(lastActivity: string | undefined): "active" | "idle" {
+  // Só aparece "ativo" se tem task in_progress/review atualizada nas últimas 2h
   if (!lastActivity) return "idle";
-  const t = new Date(lastActivity);
-  if (t > subMinutes(new Date(), 30)) return "active";
-  if (t > subHours(new Date(), 4)) return "recent";
-  return "idle";
+  return "active";
 }
 
 export default function DashboardPage() {
@@ -206,40 +207,25 @@ export default function DashboardPage() {
       </div>
 
       {/* Concluídas hoje */}
-      {data.todayDone.length > 0 && (
-        <Section title="Concluídas hoje" color="#4ADE80" count={data.todayDone.length}>
-          <div className="space-y-2">
-            {data.todayDone.map(task => <TaskRow key={task.id} task={task} />)}
-          </div>
-        </Section>
-      )}
+      <CollapsibleSection title="Concluídas hoje" color="#4ADE80" count={data.todayDone.length} defaultOpen>
+        {data.todayDone.map(task => <TaskRow key={task.id} task={task} />)}
+      </CollapsibleSection>
 
       {/* Em andamento */}
-      {data.inProgressTasks.length > 0 && (
-        <Section title="Em andamento agora" color="#60A5FA" count={data.inProgressTasks.length}>
-          <div className="space-y-2">
-            {data.inProgressTasks.map(task => <TaskRow key={task.id} task={task} />)}
-          </div>
-        </Section>
-      )}
+      <CollapsibleSection title="Em andamento agora" color="#60A5FA" count={data.inProgressTasks.length} defaultOpen>
+        {data.inProgressTasks.map(task => <TaskRow key={task.id} task={task} />)}
+      </CollapsibleSection>
 
       {/* Pendentes / Backlog */}
-      {data.backlogTasks.length > 0 && (
-        <Section title="Pendentes / Backlog" color="#71717A" count={data.backlogTasks.length}>
-          <div className="space-y-2">
-            {data.backlogTasks.map(task => <TaskRow key={task.id} task={task} />)}
-          </div>
-        </Section>
-      )}
+      <CollapsibleSection title="Pendentes / Backlog" color="#71717A" count={data.backlogTasks.length} defaultOpen={false}>
+        {data.backlogTasks.map(task => <TaskRow key={task.id} task={task} />)}
+      </CollapsibleSection>
 
-      {/* Agentes */}
-      <div className="mb-8">
-        <p className="text-[#F5F5F5]/30 text-xs font-semibold uppercase tracking-widest mb-4">
-          Agentes do Panteão
-        </p>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+      {/* Agentes — APÓS as atividades */}
+      <CollapsibleSection title="Agentes do Panteão" color="#D4AF37" count={data.agents.length} defaultOpen>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 pt-1">
           {data.agents.map((agent) => {
-            const sessionStatus = agentSessionStatus(agent.id, data.lastActivityByAgent[agent.id]);
+            const isActive = agentSessionStatus(data.lastActivityByAgent[agent.id]) === "active";
             return (
               <div key={agent.id} className="relative">
                 <AgentCard
@@ -247,23 +233,16 @@ export default function DashboardPage() {
                   lastTask={data.lastTaskByAgent[agent.id]}
                   pendingCount={data.pendingByAgent[agent.id] ?? 0}
                 />
-                {/* Session indicator */}
-                <div className="absolute top-2 right-2 flex items-center gap-1">
-                  <span className={`w-2 h-2 rounded-full ${
-                    sessionStatus === "active" ? "bg-green-400 animate-pulse" :
-                    sessionStatus === "recent" ? "bg-yellow-400" :
-                    "bg-zinc-600"
-                  }`} />
-                  <span className="text-[9px] text-[#F5F5F5]/25">
-                    {sessionStatus === "active" ? "ativo" :
-                     sessionStatus === "recent" ? "recente" : "idle"}
-                  </span>
+                {/* Indicador de sessão real */}
+                <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5">
+                  <span className={`w-2 h-2 rounded-full ${isActive ? "bg-green-400 animate-pulse" : "bg-zinc-600"}`} />
+                  <span className="text-[9px] text-[#F5F5F5]/25">{isActive ? "ativo" : "idle"}</span>
                 </div>
               </div>
             );
           })}
         </div>
-      </div>
+      </CollapsibleSection>
 
       {/* Última atualização */}
       <p className="text-center text-[10px] text-[#F5F5F5]/15 mt-6">
@@ -288,17 +267,28 @@ function StatCard({ icon, value, label, color, borderColor, dim }: {
   );
 }
 
-function Section({ title, color, count, children }: {
-  title: string; color: string; count: number; children: React.ReactNode;
+function CollapsibleSection({ title, color, count, defaultOpen, children }: {
+  title: string; color: string; count: number; defaultOpen: boolean; children: React.ReactNode;
 }) {
+  const [open, setOpen] = useState(defaultOpen);
+  if (count === 0) return null;
   return (
-    <div className="mb-8">
-      <div className="flex items-center gap-2 mb-3">
+    <div className="mb-6">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center gap-2 mb-3 group text-left">
         <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
-        <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: `${color}99` }}>{title}</p>
+        <p className="text-xs font-semibold uppercase tracking-widest flex-1" style={{ color: `${color}99` }}>{title}</p>
         <span className="text-[10px] text-[#F5F5F5]/20 bg-[#111] px-2 py-0.5 rounded-full border border-[#D4AF37]/8">{count}</span>
-      </div>
-      {children}
+        <span className="text-[#F5F5F5]/20 group-hover:text-[#F5F5F5]/50 transition-colors ml-1">
+          {open ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+        </span>
+      </button>
+      {open && (
+        <div className="space-y-2 animate-in fade-in slide-in-from-top-1 duration-150">
+          {children}
+        </div>
+      )}
     </div>
   );
 }
