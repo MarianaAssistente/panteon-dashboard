@@ -29,9 +29,6 @@ export default function ChatWidget() {
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  // Não mostrar na página de Chat dedicada
-  if (pathname === "/chat") return null;
-
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -129,6 +126,9 @@ export default function ChatWidget() {
       send();
     }
   };
+
+  // Não mostrar na página de Chat dedicada (APÓS todos os hooks)
+  if (pathname === "/chat") return null;
 
   return (
     <>
