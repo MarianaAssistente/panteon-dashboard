@@ -18,9 +18,6 @@ const AGENT_EMOJI: Record<string, string> = {
 export default function ChatWidget() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
-
-  // Não mostrar na página de Chat dedicada
-  if (pathname === "/chat") return null;
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
@@ -31,6 +28,9 @@ export default function ChatWidget() {
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  // Não mostrar na página de Chat dedicada
+  if (pathname === "/chat") return null;
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
