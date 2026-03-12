@@ -42,10 +42,12 @@ export default function HistoryPage() {
         .gte("updated_at", since)
         .order("updated_at", { ascending: false }),
     ]).then(([dRes, mRes, tRes]) => {
-      let dels = (dRes.data ?? []) as Delivery[];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let dels: any[] = (dRes.data ?? []);
       // Se não há deliveries, usar tasks done como fallback
       if (dels.length === 0 && tRes.data && tRes.data.length > 0) {
         dels = tRes.data.map((t: any) => ({
+          tasks: undefined,
           id: t.id,
           task_id: t.id,
           agent_id: t.agent_id,
@@ -57,7 +59,7 @@ export default function HistoryPage() {
           agents: { id: t.agent_id, name: t.agent_id, role: "" },
         }));
       }
-      setDeliveries(dels);
+      setDeliveries(dels as Delivery[]);
       setMetrics((mRes.data ?? []) as DailyMetric[]);
       setLoading(false);
     });

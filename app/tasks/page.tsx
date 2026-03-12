@@ -89,7 +89,7 @@ export default function TasksPage() {
     }
   }
 
-  const projectCodes = [...new Set(tasks.map(t => t.project_code).filter(Boolean))].sort();
+  const projectCodes = Array.from(new Set(tasks.map((t: any) => t.project_code).filter(Boolean))).sort() as string[];
 
   return (
     <div className="flex h-full">
