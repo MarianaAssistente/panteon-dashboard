@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { MessageCircle, X, Send, Loader2, ChevronDown, Sparkles } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { MessageCircle, X, Send, Loader2 } from "lucide-react";
 
 interface Message {
   role: "user" | "assistant";
@@ -15,7 +16,11 @@ const AGENT_EMOJI: Record<string, string> = {
 };
 
 export default function ChatWidget() {
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
+
+  // Não mostrar na página de Chat dedicada
+  if (pathname === "/chat") return null;
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
