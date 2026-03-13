@@ -502,8 +502,28 @@ export default function ProjectDetailPage() {
       <style>{`
         @media print {
           @page { size: A4 landscape; margin: 12mm 10mm; }
-          * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-          body { background: white !important; color: #1a1a1a !important; font-family: Arial, sans-serif !important; font-size: 10pt; }
+          /* Force white background on everything */
+          *, *::before, *::after {
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+            background-color: transparent !important;
+            color: #1a1a1a !important;
+            border-color: #ddd !important;
+            box-shadow: none !important;
+            text-shadow: none !important;
+          }
+          html, body, #print-area, #__next, main, div, section, article {
+            background: white !important;
+            background-color: white !important;
+            color: #1a1a1a !important;
+            font-family: Arial, Helvetica, sans-serif !important;
+            font-size: 10pt !important;
+          }
+          /* Keep colored elements */
+          .gantt-bar-done     { background-color: #4ADE80 !important; color: #fff !important; }
+          .gantt-bar-active   { background-color: #D4AF37 !important; color: #fff !important; }
+          .gantt-bar-pending  { background-color: #9CA3AF !important; }
+          .print-section-title { color: #1a1a1a !important; border-bottom: 2px solid #D4AF37 !important; }
           .no-print { display: none !important; }
           .print-section { page-break-before: always; }
           .print-section:first-of-type { page-break-before: avoid; }
@@ -513,42 +533,52 @@ export default function ProjectDetailPage() {
             display: flex !important;
             align-items: center;
             justify-content: space-between;
-            border-bottom: 2px solid #D4AF37;
+            border-bottom: 2px solid #D4AF37 !important;
             padding-bottom: 8px;
             margin-bottom: 16px;
+            background: white !important;
           }
-          .print-header h1 { font-size: 16pt; font-weight: 700; color: #1a1a1a; }
-          .print-header .meta { font-size: 9pt; color: #666; }
+          .print-header h1 { font-size: 16pt; font-weight: 700; color: #1a1a1a !important; }
+          .print-header .meta { font-size: 9pt; color: #555 !important; }
 
           /* Print footer */
           .print-footer {
-            display: block !important;
+            display: flex !important;
             position: fixed;
-            bottom: 8mm;
+            bottom: 6mm;
             left: 10mm;
             right: 10mm;
             font-size: 8pt;
-            color: #999;
-            border-top: 1px solid #ddd;
+            color: #888 !important;
+            border-top: 1px solid #ccc !important;
             padding-top: 4px;
-            display: flex;
             justify-content: space-between;
+            background: white !important;
           }
 
-          /* Tables for print */
+          /* Tables */
           .print-table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 9pt; }
-          .print-table th { background: #f5f5f5; border: 1px solid #ddd; padding: 5px 8px; text-align: left; font-weight: 600; color: #333; }
-          .print-table td { border: 1px solid #eee; padding: 4px 8px; color: #333; }
-          .print-table tr:nth-child(even) td { background: #fafafa; }
+          .print-table th { background: #f3f3f3 !important; border: 1px solid #ccc !important; padding: 5px 8px; font-weight: 700; color: #333 !important; }
+          .print-table td { border: 1px solid #ddd !important; padding: 4px 8px; color: #333 !important; background: transparent !important; }
+          .print-table tr:nth-child(even) td { background: #f9f9f9 !important; }
 
           /* Section titles */
-          .print-section-title { font-size: 12pt; font-weight: 700; color: #1a1a1a; margin: 0 0 8px 0; border-bottom: 1px solid #D4AF37; padding-bottom: 4px; }
+          .print-section-title { font-size: 12pt; font-weight: 700; color: #1a1a1a !important; margin: 0 0 8px 0; border-bottom: 2px solid #D4AF37 !important; padding-bottom: 4px; background: transparent !important; }
 
-          /* SVG in print */
-          svg { max-width: 100%; height: auto; }
+          /* SVG — force light theme */
+          svg { max-width: 100%; height: auto; background: white !important; }
+          svg rect { fill: #f5f5f5 !important; }
+          svg rect.gantt-baseline { fill: #9CA3AF !important; }
+          svg rect.gantt-forecast-done { fill: #4ADE80 !important; }
+          svg rect.gantt-forecast-active { fill: #D4AF37 !important; }
+          svg rect.gantt-forecast-pending { fill: #9CA3AF !important; }
+          svg rect.gantt-row-even { fill: #f9f9f9 !important; }
+          svg rect.gantt-row-odd { fill: #ffffff !important; }
+          svg line { stroke: #e5e7eb !important; }
+          svg line.gantt-today { stroke: #ef4444 !important; }
           svg text { fill: #333 !important; }
-          svg rect[fill="#0A0A0A"], svg rect[fill="#1A1A1A"], svg rect[fill="#141414"] { fill: #f8f8f8 !important; }
-          svg line[stroke="#1F1F1F"] { stroke: #ddd !important; }
+          svg path.gantt-dep { stroke: #D4AF37 !important; fill: none !important; }
+          svg circle.gantt-status { /* keep colored */ }
         }
         .print-header, .print-footer { display: none; }
       `}</style>
