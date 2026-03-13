@@ -71,7 +71,7 @@ export default function ProjectCard({
 
   return (
     <div
-      onClick={onClick}
+      onClick={() => window.open(`/projects/${project.id}`, "_blank")}
       className="relative cursor-pointer bg-[#111111] border border-[#D4AF37]/10 rounded-2xl p-5 flex flex-col gap-4 hover:border-[#D4AF37]/30 hover:bg-[#D4AF37]/4 transition-all duration-200 group"
     >
       {/* Top row */}
@@ -166,17 +166,6 @@ export default function ProjectCard({
             </a>
           )}
         </div>
-        {/* Ver detalhes — abre em nova aba */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            window.open(`/projects/${project.id}`, "_blank");
-          }}
-          className="flex items-center gap-1 text-[10px] text-[#D4AF37]/40 hover:text-[#D4AF37] transition-colors ml-auto"
-          title="Ver página de detalhes"
-        >
-          ↗ Detalhes
-        </button>
       </div>
 
       {/* Project color stripe */}
