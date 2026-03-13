@@ -153,6 +153,26 @@ export const SITES_DATA: SiteData[] = [
     responsible: "afrodite",
     notes: "Page ID: 61583775632785. Criada em 2026-03-08.",
   },
+  {
+    id: "stmgroup-site",
+    name: "STM Group — Site Institucional",
+    url: "https://stmgroup.com.br",
+    vertical: "STM Group",
+    status: "online",
+    type: "Site Institucional",
+    description: "Site institucional da STM Group com apresentação das verticais de negócio: STM Capital, STM Digital e STM Consultancy. Hospedado no GitHub Pages com domínio customizado.",
+    stack: ["HTML", "CSS", "JavaScript", "GitHub Pages"],
+    features: [
+      "index.html — página principal",
+      "capital.html — STM Capital (consórcio imobiliário)",
+      "digital.html — STM Digital (marketing e conteúdo)",
+      "consultancy.html — STM Consultancy (consultoria)",
+      "template-apresentacao.html — template institucional",
+    ],
+    responsible: "mariana",
+    repo: "https://github.com/MarianaAssistente/stmgroup-site",
+    notes: "GitHub Pages: marianaassistente.github.io/stmgroup-site. DNS customizado stmgroup.com.br aponta para o Pages.",
+  },
 ];
 
 export const SITE_STATUS_CONFIG: Record<SiteStatus, { label: string; color: string; dot: string }> = {
