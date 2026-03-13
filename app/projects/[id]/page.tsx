@@ -210,52 +210,52 @@ function GanttChart({milestones, isPrinting}: {milestones:Milestone[]; isPrintin
 
       <svg width={TW} height={TH} className="select-none font-sans">
         {/* ── Background ── */}
-        <rect width={TW} height={TH} fill="#0A0A0A" rx={8}/>
+        <rect width={TW} height={TH} fill={isPrinting ? "#FFFFFF" : "#0A0A0A"} rx={8}/>
 
         {/* ── Weekend shading ── */}
         {weekends.map((w,i)=>(
-          <rect key={i} x={w.x} y={HDR_H} width={w.w} height={TH-HDR_H} fill="#FFFFFF06"/>
+          <rect key={i} x={w.x} y={HDR_H} width={w.w} height={TH-HDR_H} fill={isPrinting ? "#F3F4F6" : "#FFFFFF06"}/>
         ))}
 
         {/* ── Month header ── */}
-        <rect x={0} y={0} width={TW} height={MONTH_H} fill="#1A1A1A"/>
-        <line x1={0} y1={MONTH_H} x2={TW} y2={MONTH_H} stroke="#D4AF3740" strokeWidth={1}/>
+        <rect x={0} y={0} width={TW} height={MONTH_H} fill={isPrinting ? "#E5E7EB" : "#1A1A1A"}/>
+        <line x1={0} y1={MONTH_H} x2={TW} y2={MONTH_H} stroke={isPrinting ? "#E5E7EB" : "#D4AF3740"} strokeWidth={1}/>
 
         {/* Left header labels */}
-        <rect x={0} y={0} width={LW} height={HDR_H} fill="#141414"/>
-        <text x={10} y={MONTH_H-8} fontSize={11} fontWeight="600" fill="#D4AF37CC">Tarefa / Milestone</text>
-        <line x1={LW} y1={0} x2={LW} y2={TH} stroke="#D4AF3733" strokeWidth={1}/>
+        <rect x={0} y={0} width={LW} height={HDR_H} fill={isPrinting ? "#F3F4F6" : "#141414"}/>
+        <text x={10} y={MONTH_H-8} fontSize={11} fontWeight="600" fill={isPrinting ? "#B8860B" : "#D4AF37CC"}>Tarefa / Milestone</text>
+        <line x1={LW} y1={0} x2={LW} y2={TH} stroke={isPrinting ? "#D1D5DB" : "#D4AF3733"} strokeWidth={1}/>
 
         {/* Right header — Datas */}
-        <rect x={LW+CW} y={0} width={DW} height={HDR_H} fill="#141414"/>
-        <text x={LW+CW+10} y={MONTH_H-8} fontSize={10} fill="#D4AF3780">Início → Fim</text>
-        <line x1={LW+CW} y1={0} x2={LW+CW} y2={TH} stroke="#D4AF3733" strokeWidth={1}/>
+        <rect x={LW+CW} y={0} width={DW} height={HDR_H} fill={isPrinting ? "#F3F4F6" : "#141414"}/>
+        <text x={LW+CW+10} y={MONTH_H-8} fontSize={10} fill={isPrinting ? "#B8860B" : "#D4AF3780"}>Início → Fim</text>
+        <line x1={LW+CW} y1={0} x2={LW+CW} y2={TH} stroke={isPrinting ? "#D1D5DB" : "#D4AF3733"} strokeWidth={1}/>
 
         {/* Month labels */}
         {months.map((m,i)=>(
           <g key={i}>
-            <text x={m.x+6} y={MONTH_H-8} fontSize={11} fontWeight="600" fill="#F5F5F5CC"
+            <text x={m.x+6} y={MONTH_H-8} fontSize={11} fontWeight="600" fill={isPrinting ? "#1a1a1a" : "#F5F5F5CC"}
               clipPath={`url(#clipm${i})`}>{m.lbl}</text>
             <clipPath id={`clipm${i}`}>
               <rect x={m.x} y={0} width={m.w} height={MONTH_H}/>
             </clipPath>
-            <line x1={m.x+m.w} y1={0} x2={m.x+m.w} y2={MONTH_H} stroke="#D4AF3720" strokeWidth={1}/>
+            <line x1={m.x+m.w} y1={0} x2={m.x+m.w} y2={MONTH_H} stroke={isPrinting ? "#E5E7EB" : "#D4AF3720"} strokeWidth={1}/>
           </g>
         ))}
 
         {/* ── Week subheader ── */}
-        <rect x={LW} y={MONTH_H} width={CW} height={WEEK_H} fill="#141414"/>
-        <line x1={0} y1={HDR_H} x2={TW} y2={HDR_H} stroke="#D4AF3730" strokeWidth={1}/>
+        <rect x={LW} y={MONTH_H} width={CW} height={WEEK_H} fill={isPrinting ? "#F3F4F6" : "#141414"}/>
+        <line x1={0} y1={HDR_H} x2={TW} y2={HDR_H} stroke={isPrinting ? "#E5E7EB" : "#D4AF3730"} strokeWidth={1}/>
         {weeks.map((w,i)=>(
           <g key={i}>
-            <line x1={w.x} y1={MONTH_H} x2={w.x} y2={HDR_H} stroke="#D4AF3718" strokeWidth={1}/>
-            <text x={w.x+3} y={HDR_H-5} fontSize={9} fill="#F5F5F540">{w.lbl}</text>
+            <line x1={w.x} y1={MONTH_H} x2={w.x} y2={HDR_H} stroke={isPrinting ? "#E5E7EB" : "#D4AF3718"} strokeWidth={1}/>
+            <text x={w.x+3} y={HDR_H-5} fontSize={9} fill={isPrinting ? "#6B7280" : "#F5F5F540"}>{w.lbl}</text>
           </g>
         ))}
 
         {/* ── Vertical grid lines (weeks) ── */}
         {weeks.map((w,i)=>(
-          <line key={i} x1={w.x} y1={HDR_H} x2={w.x} y2={TH} stroke="#1F1F1F" strokeWidth={1}/>
+          <line key={i} x1={w.x} y1={HDR_H} x2={w.x} y2={TH} stroke={isPrinting ? "#E5E7EB" : "#1F1F1F"} strokeWidth={1}/>
         ))}
 
         {/* ── TODAY line ── */}
@@ -270,7 +270,7 @@ function GanttChart({milestones, isPrinting}: {milestones:Milestone[]; isPrintin
         {/* ── Dependency arrows ── */}
         <defs>
           <marker id="arrowGold" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
-            <path d="M0,0 L8,4 L0,8 Z" fill="#D4AF3799"/>
+            <path d="M0,0 L8,4 L0,8 Z" fill={isPrinting ? "#B8860B" : "#D4AF3799"}/>
           </marker>
         </defs>
         {sorted.map(m=>{
@@ -286,7 +286,7 @@ function GanttChart({milestones, isPrinting}: {milestones:Milestone[]; isPrintin
             return (
               <path key={`${m.id}-${depId}`}
                 d={`M${x1},${y1} C${x1+24},${y1} ${x2-24},${y2} ${x2},${y2}`}
-                fill="none" stroke="#D4AF3799" strokeWidth={2} markerEnd="url(#arrowGold)"/>
+                fill="none" stroke={isPrinting ? "#B8860B" : "#D4AF3799"} strokeWidth={2} markerEnd="url(#arrowGold)"/>
             );
           });
         })}
@@ -382,13 +382,13 @@ function GanttChart({milestones, isPrinting}: {milestones:Milestone[]; isPrintin
               <text x={LW+CW+8} y={y+36} fontSize={10} fill="#F5F5F530">→ {feDate}</text>
 
               {/* Row separator */}
-              <line x1={0} y1={y+RH} x2={TW} y2={y+RH} stroke="#1F1F1F" strokeWidth={1}/>
+              <line x1={0} y1={y+RH} x2={TW} y2={y+RH} stroke={isPrinting ? "#E5E7EB" : "#1F1F1F"} strokeWidth={1}/>
             </g>
           );
         })}
 
         {/* Outer border */}
-        <rect width={TW} height={TH} fill="none" rx={8} stroke="#D4AF3720" strokeWidth={1}/>
+        <rect width={TW} height={TH} fill="none" rx={8} stroke={isPrinting ? "#E5E7EB" : "#D4AF3720"} strokeWidth={1}/>
       </svg>
 
       {/* Tooltip */}
