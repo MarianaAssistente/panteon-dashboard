@@ -512,12 +512,20 @@ export default function ProjectDetailPage() {
             box-shadow: none !important;
             text-shadow: none !important;
           }
-          html, body, #print-area, #__next, main, div, section, article {
+          html, body, #print-area, #__next, main {
             background: white !important;
             background-color: white !important;
             color: #1a1a1a !important;
             font-family: Arial, Helvetica, sans-serif !important;
             font-size: 10pt !important;
+          }
+          /* Override all Tailwind dark backgrounds */
+          [class*="bg-\\[#0"], [class*="bg-\\[#1"], [class*="bg-\\[#2"] {
+            background-color: white !important;
+          }
+          .bg-\\[\\#080808\\], .bg-\\[\\#111\\], .bg-\\[\\#0D0D0D\\],
+          .bg-\\[\\#0f0f18\\], .bg-\\[\\#141414\\] {
+            background-color: white !important;
           }
           /* Keep colored elements */
           .gantt-bar-done     { background-color: #4ADE80 !important; color: #fff !important; }
@@ -565,20 +573,20 @@ export default function ProjectDetailPage() {
           /* Section titles */
           .print-section-title { font-size: 12pt; font-weight: 700; color: #1a1a1a !important; margin: 0 0 8px 0; border-bottom: 2px solid #D4AF37 !important; padding-bottom: 4px; background: transparent !important; }
 
-          /* SVG — force light theme */
-          svg { max-width: 100%; height: auto; background: white !important; }
-          svg rect { fill: #f5f5f5 !important; }
-          svg rect.gantt-baseline { fill: #9CA3AF !important; }
-          svg rect.gantt-forecast-done { fill: #4ADE80 !important; }
-          svg rect.gantt-forecast-active { fill: #D4AF37 !important; }
-          svg rect.gantt-forecast-pending { fill: #9CA3AF !important; }
+          /* SVG — force light theme (only target backgrounds, NOT data bars) */
+          svg { max-width: 100%; height: auto; }
+          svg rect.gantt-bg { fill: #ffffff !important; }
+          svg rect.gantt-header-bg { fill: #f3f3f3 !important; }
           svg rect.gantt-row-even { fill: #f9f9f9 !important; }
           svg rect.gantt-row-odd { fill: #ffffff !important; }
-          svg line { stroke: #e5e7eb !important; }
-          svg line.gantt-today { stroke: #ef4444 !important; }
-          svg text { fill: #333 !important; }
-          svg path.gantt-dep { stroke: #D4AF37 !important; fill: none !important; }
-          svg circle.gantt-status { /* keep colored */ }
+          svg rect.gantt-baseline { fill: #9CA3AF !important; }
+          svg rect.gantt-forecast-done { fill: #22c55e !important; }
+          svg rect.gantt-forecast-active { fill: #D4AF37 !important; }
+          svg rect.gantt-forecast-pending { fill: #94a3b8 !important; }
+          svg line { stroke: #e2e8f0 !important; }
+          svg line.gantt-today { stroke: #ef4444 !important; stroke-width: 2 !important; }
+          svg text { fill: #1a1a1a !important; }
+          svg path.gantt-dep { stroke: #D4AF37 !important; opacity: 0.8 !important; }
         }
         .print-header, .print-footer { display: none; }
       `}</style>
