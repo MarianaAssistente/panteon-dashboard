@@ -141,9 +141,9 @@ export default function ProjectCard({
         )}
       </div>
 
-      {/* Quick links */}
-      {(project.notion_url || project.trello_url || project.drive_url) && (
-        <div className="flex gap-2 border-t border-white/5 pt-3">
+      {/* Quick links + Detail button */}
+      <div className="flex items-center justify-between gap-2 border-t border-white/5 pt-3">
+        <div className="flex gap-2">
           {project.notion_url && (
             <a href={project.notion_url} target="_blank" rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
@@ -166,7 +166,18 @@ export default function ProjectCard({
             </a>
           )}
         </div>
-      )}
+        {/* Ver detalhes — abre em nova aba */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            window.open(`/projects/${project.id}`, "_blank");
+          }}
+          className="flex items-center gap-1 text-[10px] text-[#D4AF37]/40 hover:text-[#D4AF37] transition-colors ml-auto"
+          title="Ver página de detalhes"
+        >
+          ↗ Detalhes
+        </button>
+      </div>
 
       {/* Project color stripe */}
       <div className="absolute bottom-0 left-0 right-0 h-0.5 rounded-b-2xl"
