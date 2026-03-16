@@ -1,17 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import { BookOpen, Cpu, Lightbulb } from "lucide-react";
+import { BookOpen, Cpu, Lightbulb, GraduationCap } from "lucide-react";
 import KnowledgeBaseTab from "@/components/tabs/KnowledgeBaseTab";
 import SkillsTab from "@/components/tabs/SkillsTab";
 import LessonsTab from "@/components/tabs/LessonsTab";
+import DiretrizesTab from "@/components/tabs/DiretrizesTab";
 
-type Tab = "base" | "skills" | "licoes";
+type Tab = "base" | "skills" | "licoes" | "diretrizes";
 
 const TABS: { id: Tab; label: string; icon: React.ReactNode; desc: string }[] = [
-  { id: "base",    label: "Base de Conhecimento", icon: <BookOpen size={14} />,  desc: "Memória permanente do Panteão" },
-  { id: "skills",  label: "Skills",               icon: <Cpu size={14} />,       desc: "17 capacidades instaladas" },
-  { id: "licoes",  label: "Lições Aprendidas",    icon: <Lightbulb size={14} />, desc: "Arquitetura e decisões consolidadas" },
+  { id: "base",       label: "Base de Conhecimento", icon: <BookOpen size={14} />,      desc: "Memória permanente do Panteão" },
+  { id: "skills",     label: "Skills",               icon: <Cpu size={14} />,           desc: "17 capacidades instaladas" },
+  { id: "licoes",     label: "Lições Aprendidas",    icon: <Lightbulb size={14} />,     desc: "Arquitetura e decisões consolidadas" },
+  { id: "diretrizes", label: "Diretrizes",            icon: <GraduationCap size={14} />, desc: "VTSD 2.0 — 23 diretrizes de Leandro Ladeira" },
 ];
 
 export default function KnowledgePage() {
@@ -51,9 +53,10 @@ export default function KnowledgePage() {
 
       {/* Tab content */}
       <div className="flex-1 overflow-auto">
-        {activeTab === "base"   && <KnowledgeBaseTab />}
-        {activeTab === "skills" && <SkillsTab />}
-        {activeTab === "licoes" && <LessonsTab />}
+        {activeTab === "base"       && <KnowledgeBaseTab />}
+        {activeTab === "skills"     && <SkillsTab />}
+        {activeTab === "licoes"     && <LessonsTab />}
+        {activeTab === "diretrizes" && <DiretrizesTab />}
       </div>
     </div>
   );

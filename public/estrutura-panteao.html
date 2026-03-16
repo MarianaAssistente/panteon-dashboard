@@ -1,0 +1,2196 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panteão STM Group — Estrutura Operacional</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-dark: #0f1117;
+            --bg-darker: #010409;
+            --bg-light: #161b22;
+            --primary: #6366f1;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --text-primary: #e0e7ff;
+            --text-secondary: #a0aec0;
+            --border: #30363d;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        /* ===== LAYOUT ===== */
+        .container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 240px;
+            height: 100vh;
+            background: var(--bg-darker);
+            border-right: 1px solid var(--border);
+            padding: 24px 16px;
+            overflow-y: auto;
+            z-index: 1000;
+        }
+
+        .main-content {
+            margin-left: 240px;
+            flex: 1;
+            padding: 0;
+        }
+
+        /* ===== SIDEBAR ===== */
+        .logo {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 32px;
+            color: var(--primary);
+            text-decoration: none;
+            display: block;
+            padding: 8px 12px;
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+
+        .logo:hover {
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        .nav-section {
+            margin-bottom: 32px;
+        }
+
+        .nav-section-title {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 8px;
+            padding: 0 12px;
+        }
+
+        .nav-link {
+            display: block;
+            padding: 10px 12px;
+            margin-bottom: 6px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: all 0.2s;
+            cursor: pointer;
+            border-left: 3px solid transparent;
+        }
+
+        .nav-link:hover {
+            background: rgba(99, 102, 241, 0.1);
+            color: var(--text-primary);
+        }
+
+        .nav-link.active {
+            background: rgba(99, 102, 241, 0.15);
+            color: var(--primary);
+            border-left-color: var(--primary);
+        }
+
+        /* ===== SECTIONS ===== */
+        section {
+            padding: 64px;
+            border-bottom: 1px solid var(--border);
+            display: none;
+        }
+
+        section.active {
+            display: block;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* ===== HEADER ===== */
+        .section-header {
+            margin-bottom: 48px;
+        }
+
+        .section-title {
+            font-size: 36px;
+            font-weight: 800;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, var(--primary), var(--success));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .section-subtitle {
+            font-size: 16px;
+            color: var(--text-secondary);
+        }
+
+        /* ===== CARDS ===== */
+        .card {
+            background: var(--bg-light);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--primary), transparent);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .card:hover {
+            border-color: var(--primary);
+            transform: translateY(-2px);
+        }
+
+        .card:hover::before {
+            opacity: 1;
+        }
+
+        /* ===== GRID ===== */
+        .grid {
+            display: grid;
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+
+        .grid-2 { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+        .grid-3 { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+        .grid-4 { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+
+        /* ===== SUMMARY CARDS ===== */
+        .summary-card {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(16, 185, 129, 0.05));
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 28px;
+            text-align: center;
+        }
+
+        .summary-number {
+            font-size: 48px;
+            font-weight: 800;
+            color: var(--primary);
+            margin-bottom: 8px;
+        }
+
+        .summary-label {
+            font-size: 14px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 600;
+        }
+
+        /* ===== AGENT CARD ===== */
+        .agent-card {
+            position: relative;
+            padding: 28px;
+        }
+
+        .agent-avatar {
+            width: 64px;
+            height: 64px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            color: white;
+        }
+
+        .agent-name {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .agent-role {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            font-weight: 500;
+        }
+
+        .agent-model {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            padding: 4px 8px;
+            background: rgba(99, 102, 241, 0.1);
+            border-radius: 4px;
+            display: inline-block;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .badge-working {
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--success);
+            animation: pulse 2s infinite;
+        }
+
+        .badge-idle {
+            background: rgba(245, 158, 11, 0.2);
+            color: var(--warning);
+        }
+
+        .badge-standby {
+            background: rgba(160, 174, 192, 0.2);
+            color: var(--text-secondary);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        /* ===== PROJECT CARD ===== */
+        .project-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 16px;
+        }
+
+        .project-title {
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .project-code {
+            font-size: 11px;
+            color: var(--text-secondary);
+            background: rgba(99, 102, 241, 0.1);
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+
+        .project-lead {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 999px;
+            overflow: hidden;
+            margin-bottom: 12px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--success));
+            border-radius: 999px;
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            font-size: 12px;
+            color: var(--text-secondary);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        /* ===== TABS ===== */
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 32px;
+            gap: 8px;
+        }
+
+        .tab-button {
+            padding: 12px 20px;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -1px;
+        }
+
+        .tab-button:hover {
+            color: var(--text-primary);
+        }
+
+        .tab-button.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* ===== TASK CARD ===== */
+        .task-card {
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .task-card:last-child {
+            border-bottom: none;
+        }
+
+        .task-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+
+        .task-code {
+            font-size: 11px;
+            color: var(--text-secondary);
+            background: rgba(99, 102, 241, 0.1);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
+        .task-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .task-meta {
+            display: flex;
+            gap: 12px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            flex-wrap: wrap;
+        }
+
+        .task-agent {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .task-link {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .task-link:hover {
+            text-decoration: underline;
+        }
+
+        /* ===== INFRASTRUCTURE ===== */
+        .flow-diagram {
+            background: rgba(99, 102, 241, 0.05);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 32px;
+            margin-bottom: 32px;
+            text-align: center;
+        }
+
+        .flow-items {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            flex-wrap: wrap;
+            font-weight: 600;
+        }
+
+        .flow-item {
+            padding: 12px 20px;
+            background: rgba(99, 102, 241, 0.15);
+            border: 1px solid var(--primary);
+            border-radius: 8px;
+            color: var(--primary);
+        }
+
+        .flow-arrow {
+            color: var(--text-secondary);
+            font-size: 20px;
+        }
+
+        .service-grid {
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        }
+
+        .service-card {
+            padding: 24px;
+        }
+
+        .service-name {
+            font-size: 15px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .service-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            margin-bottom: 12px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success);
+        }
+
+        .status-dot.warning {
+            background: var(--warning);
+        }
+
+        .service-info {
+            font-size: 12px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        /* ===== KNOWLEDGE BASE ===== */
+        .knowledge-item {
+            padding: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .knowledge-item:last-child {
+            border-bottom: none;
+        }
+
+        .knowledge-title {
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .knowledge-category {
+            display: inline-block;
+            font-size: 11px;
+            padding: 2px 8px;
+            background: rgba(99, 102, 241, 0.1);
+            color: var(--primary);
+            border-radius: 4px;
+            margin-right: 8px;
+        }
+
+        .knowledge-importance {
+            display: inline-block;
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
+        .knowledge-importance.critico {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--danger);
+        }
+
+        .knowledge-importance.alto {
+            background: rgba(245, 158, 11, 0.2);
+            color: var(--warning);
+        }
+
+        .knowledge-importance.normal {
+            background: rgba(59, 130, 246, 0.2);
+            color: #60a5fa;
+        }
+
+        /* ===== ANALYSIS ===== */
+        .analysis-block {
+            margin-bottom: 32px;
+        }
+
+        .analysis-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .analysis-item {
+            padding: 16px;
+            background: rgba(99, 102, 241, 0.05);
+            border-left: 3px solid var(--primary);
+            border-radius: 6px;
+            margin-bottom: 12px;
+        }
+
+        .analysis-block.critical .analysis-item {
+            border-left-color: var(--danger);
+            background: rgba(239, 68, 68, 0.05);
+        }
+
+        .analysis-block.critical .analysis-title {
+            color: var(--danger);
+        }
+
+        .analysis-block.important .analysis-item {
+            border-left-color: var(--warning);
+            background: rgba(245, 158, 11, 0.05);
+        }
+
+        .analysis-block.important .analysis-title {
+            color: var(--warning);
+        }
+
+        .analysis-block.evolution .analysis-item {
+            border-left-color: var(--success);
+            background: rgba(16, 185, 129, 0.05);
+        }
+
+        .analysis-block.evolution .analysis-title {
+            color: var(--success);
+        }
+
+        .analysis-item-title {
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .analysis-item-desc {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        /* ===== ROADMAP ===== */
+        .roadmap-container {
+            overflow-x: auto;
+            margin-bottom: 32px;
+        }
+
+        .roadmap {
+            display: flex;
+            gap: 32px;
+            padding: 32px 0;
+            min-width: 100%;
+        }
+
+        .roadmap-quarter {
+            flex: 0 0 240px;
+        }
+
+        .quarter-header {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            color: var(--primary);
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--primary);
+        }
+
+        .quarter-items {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .quarter-item {
+            padding: 12px;
+            background: rgba(99, 102, 241, 0.1);
+            border-radius: 6px;
+            font-size: 12px;
+            line-height: 1.4;
+            border-left: 2px solid var(--primary);
+        }
+
+        /* ===== FILTERS ===== */
+        .filters {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 8px 16px;
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .filter-btn:hover,
+        .filter-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        /* ===== STATUS INDICATOR ===== */
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 20px;
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid var(--success);
+            border-radius: 8px;
+            color: var(--success);
+            font-weight: 600;
+            margin-bottom: 24px;
+        }
+
+        .status-dot-large {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--success);
+            animation: pulse 2s infinite;
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 1024px) {
+            .sidebar {
+                width: 200px;
+            }
+
+            .main-content {
+                margin-left: 200px;
+            }
+
+            section {
+                padding: 48px 32px;
+            }
+
+            .section-title {
+                font-size: 28px;
+            }
+
+            .grid-4 {
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                position: absolute;
+                width: 100%;
+                height: auto;
+                border-right: none;
+                border-bottom: 1px solid var(--border);
+                padding: 16px;
+                max-height: 200px;
+                overflow: hidden;
+            }
+
+            .sidebar.expanded {
+                max-height: 100%;
+                overflow-y: auto;
+            }
+
+            .main-content {
+                margin-left: 0;
+                margin-top: 100px;
+            }
+
+            section {
+                padding: 32px 16px;
+            }
+
+            .section-title {
+                font-size: 24px;
+            }
+
+            .grid-2 { grid-template-columns: 1fr; }
+            .grid-3 { grid-template-columns: repeat(2, 1fr); }
+            .grid-4 { grid-template-columns: repeat(2, 1fr); }
+
+            .flow-items {
+                flex-direction: column;
+            }
+
+            .flow-arrow {
+                transform: rotate(90deg);
+            }
+        }
+
+        @media (max-width: 480px) {
+            .grid-3 { grid-template-columns: 1fr; }
+            .grid-4 { grid-template-columns: 1fr; }
+
+            .summary-number {
+                font-size: 36px;
+            }
+
+            .section-title {
+                font-size: 20px;
+            }
+        }
+
+        /* ===== PRINT ===== */
+        @media print {
+            .sidebar {
+                display: none;
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            section {
+                page-break-inside: avoid;
+                padding: 32px 20px;
+            }
+        }
+
+        /* ===== SCROLLBAR ===== */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-dark);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--primary);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- SIDEBAR -->
+        <aside class="sidebar">
+            <a href="#overview" class="logo">⚡ PANTEÃO</a>
+
+            <div class="nav-section">
+                <div class="nav-section-title">NAVEGAÇÃO</div>
+                <a class="nav-link active" data-section="overview">Visão Geral</a>
+                <a class="nav-link" data-section="agents">Agentes</a>
+                <a class="nav-link" data-section="projects">Projetos</a>
+                <a class="nav-link" data-section="tasks">Tarefas</a>
+                <a class="nav-link" data-section="infra">Infraestrutura</a>
+                <a class="nav-link" data-section="knowledge">Knowledge</a>
+                <a class="nav-link" data-section="analysis">Análise</a>
+                <a class="nav-link" data-section="roadmap">Roadmap</a>
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT -->
+        <main class="main-content">
+            <!-- SECTION 1: OVERVIEW -->
+            <section id="overview" class="active">
+                <div class="section-header">
+                    <h1 class="section-title">Visão Geral do Panteão</h1>
+                    <p class="section-subtitle">Estado atual da operação — estrutura, recursos e status</p>
+                </div>
+
+                <div class="status-indicator">
+                    <div class="status-dot-large"></div>
+                    <span>Panteão Operacional</span>
+                </div>
+
+                <div class="grid grid-2" style="margin-bottom: 32px;">
+                    <div class="summary-card">
+                        <div class="summary-number">8</div>
+                        <div class="summary-label">Agentes Ativos</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-number">8</div>
+                        <div class="summary-label">Projetos</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-number">8</div>
+                        <div class="summary-label">Tarefas em Progresso</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-number">8</div>
+                        <div class="summary-label">Concluídas Recentemente</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3 style="margin-bottom: 16px; font-size: 16px; font-weight: 700;">Sobre o Panteão</h3>
+                    <p style="margin-bottom: 16px; color: var(--text-secondary);">
+                        O Panteão é a infraestrutura de IA operacional da STM Group, composto por 8 agentes especializados (Mariana, Atena, Hefesto, Afrodite, Apollo, Hera, Ares e Héstia) que coordenam múltiplos projetos e verticais de negócio.
+                    </p>
+                    <p style="margin-bottom: 16px; color: var(--text-secondary);">
+                        <strong>Última atualização:</strong> <span id="current-time"></span>
+                    </p>
+                    <p style="color: var(--text-secondary);">
+                        <strong>Objetivo:</strong> Demonstrar a estrutura completa do Panteão, seus componentes, tarefas, infraestrutura e as melhorias necessárias para otimizar a operação.
+                    </p>
+                </div>
+            </section>
+
+            <!-- SECTION 2: AGENTS -->
+            <section id="agents">
+                <div class="section-header">
+                    <h1 class="section-title">Agentes do Panteão</h1>
+                    <p class="section-subtitle">8 especialistas dirigindo a operação</p>
+                </div>
+
+                <div class="grid grid-4">
+                    <!-- Mariana -->
+                    <div class="card agent-card">
+                        <div class="agent-avatar" style="background: linear-gradient(135deg, #6366f1, #8b5cf6);">M</div>
+                        <div class="agent-name">Mariana</div>
+                        <div class="agent-role">CEO</div>
+                        <div class="agent-model">claude-sonnet-4-6</div>
+                        <span class="badge badge-working">Working</span>
+                    </div>
+
+                    <!-- Atena -->
+                    <div class="card agent-card">
+                        <div class="agent-avatar" style="background: linear-gradient(135deg, #8b5cf6, #d946ef);">A</div>
+                        <div class="agent-name">Atena</div>
+                        <div class="agent-role">CSO</div>
+                        <div class="agent-model">claude-sonnet-4-6</div>
+                        <span class="badge badge-idle">Idle</span>
+                    </div>
+
+                    <!-- Hefesto -->
+                    <div class="card agent-card">
+                        <div class="agent-avatar" style="background: linear-gradient(135deg, #d946ef, #ec4899);">H</div>
+                        <div class="agent-name">Hefesto</div>
+                        <div class="agent-role">CTO</div>
+                        <div class="agent-model">claude-sonnet-4-6</div>
+                        <span class="badge badge-idle">Idle</span>
+                    </div>
+
+                    <!-- Afrodite -->
+                    <div class="card agent-card">
+                        <div class="agent-avatar" style="background: linear-gradient(135deg, #ec4899, #f43f5e);">AF</div>
+                        <div class="agent-name">Afrodite</div>
+                        <div class="agent-role">CMO</div>
+                        <div class="agent-model">claude-haiku-4-5</div>
+                        <span class="badge badge-idle">Idle</span>
+                    </div>
+
+                    <!-- Apollo -->
+                    <div class="card agent-card">
+                        <div class="agent-avatar" style="background: linear-gradient(135deg, #f43f5e, #fb7185);">AP</div>
+                        <div class="agent-name">Apollo</div>
+                        <div class="agent-role">CCO</div>
+                        <div class="agent-model">claude-haiku-4-5</div>
+                        <span class="badge badge-standby">Standby</span>
+                    </div>
+
+                    <!-- Hera -->
+                    <div class="card agent-card">
+                        <div class="agent-avatar" style="background: linear-gradient(135deg, #fb7185, #fca5a5);">HE</div>
+                        <div class="agent-name">Hera</div>
+                        <div class="agent-role">COO</div>
+                        <div class="agent-model">claude-haiku-4-5</div>
+                        <span class="badge badge-idle">Idle</span>
+                    </div>
+
+                    <!-- Ares -->
+                    <div class="card agent-card">
+                        <div class="agent-avatar" style="background: linear-gradient(135deg, #fca5a5, #fed7aa);">AR</div>
+                        <div class="agent-name">Ares</div>
+                        <div class="agent-role">CQO</div>
+                        <div class="agent-model">claude-sonnet-4-6</div>
+                        <span class="badge badge-idle">Idle</span>
+                    </div>
+
+                    <!-- Héstia -->
+                    <div class="card agent-card">
+                        <div class="agent-avatar" style="background: linear-gradient(135deg, #fed7aa, #fbbf24);">HS</div>
+                        <div class="agent-name">Héstia</div>
+                        <div class="agent-role">CPA</div>
+                        <div class="agent-model">claude-haiku-4-5</div>
+                        <span class="badge badge-standby">Standby</span>
+                    </div>
+                </div>
+
+                <div class="card" style="margin-top: 32px;">
+                    <h3 style="margin-bottom: 16px; font-size: 16px; font-weight: 700;">Legendas de Status</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+                        <div>
+                            <span class="badge badge-working">Working</span>
+                            <p style="font-size: 12px; color: var(--text-secondary); margin-top: 8px;">Agente em atividade, executando tarefas</p>
+                        </div>
+                        <div>
+                            <span class="badge badge-idle">Idle</span>
+                            <p style="font-size: 12px; color: var(--text-secondary); margin-top: 8px;">Agente pronto, aguardando atribuição</p>
+                        </div>
+                        <div>
+                            <span class="badge badge-standby">Standby</span>
+                            <p style="font-size: 12px; color: var(--text-secondary); margin-top: 8px;">Agente em modo de espera, menos disponível</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION 3: PROJECTS -->
+            <section id="projects">
+                <div class="section-header">
+                    <h1 class="section-title">Projetos Ativos</h1>
+                    <p class="section-subtitle">8 projetos em andamento por vertical</p>
+                </div>
+
+                <div class="filters">
+                    <button class="filter-btn active" data-filter="all">Todos</button>
+                    <button class="filter-btn" data-filter="STM Digital">STM Digital</button>
+                    <button class="filter-btn" data-filter="STM Capital">STM Capital</button>
+                    <button class="filter-btn" data-filter="AgiSales">AgiSales</button>
+                    <button class="filter-btn" data-filter="Interno">Interno</button>
+                </div>
+
+                <div class="grid grid-2">
+                    <!-- AGI-001 -->
+                    <div class="card" data-vertical="AgiSales">
+                        <div class="project-header">
+                            <div>
+                                <div class="project-title">AgiSales — Motor de Vendas</div>
+                                <div class="project-code">AGI-001</div>
+                            </div>
+                        </div>
+                        <div class="project-lead">Lead: Hefesto</div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 30%;"></div>
+                        </div>
+                        <div class="progress-text">
+                            <span>Progresso</span>
+                            <span>30%</span>
+                        </div>
+                        <div style="display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap;">
+                            <span class="badge" style="background: rgba(99, 102, 241, 0.2); color: var(--primary); font-size: 11px;">Desenvolvimento</span>
+                        </div>
+                    </div>
+
+                    <!-- DIG-001 -->
+                    <div class="card" data-vertical="STM Digital">
+                        <div class="project-header">
+                            <div>
+                                <div class="project-title">E-book Panteão Digital</div>
+                                <div class="project-code">DIG-001</div>
+                            </div>
+                        </div>
+                        <div class="project-lead">Lead: Apollo</div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 85%;"></div>
+                        </div>
+                        <div class="progress-text">
+                            <span>Progresso</span>
+                            <span>85%</span>
+                        </div>
+                        <div style="display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap;">
+                            <span class="badge" style="background: rgba(245, 158, 11, 0.2); color: var(--warning); font-size: 11px;">Review</span>
+                        </div>
+                    </div>
+
+                    <!-- DIG-002 -->
+                    <div class="card" data-vertical="STM Digital">
+                        <div class="project-header">
+                            <div>
+                                <div class="project-title">Pipeline de Vídeo IA</div>
+                                <div class="project-code">DIG-002</div>
+                            </div>
+                        </div>
+                        <div class="project-lead">Lead: Hefesto</div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 40%;"></div>
+                        </div>
+                        <div class="progress-text">
+                            <span>Progresso</span>
+                            <span>40%</span>
+                        </div>
+                        <div style="display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap;">
+                            <span class="badge" style="background: rgba(99, 102, 241, 0.2); color: var(--primary); font-size: 11px;">Desenvolvimento</span>
+                        </div>
+                    </div>
+
+                    <!-- DIG-003 -->
+                    <div class="card" data-vertical="STM Digital">
+                        <div class="project-header">
+                            <div>
+                                <div class="project-title">Base de Conhecimento VTSD</div>
+                                <div class="project-code">DIG-003</div>
+                            </div>
+                        </div>
+                        <div class="project-lead">Lead: Apollo</div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 100%;"></div>
+                        </div>
+                        <div class="progress-text">
+                            <span>Progresso</span>
+                            <span>100% ✅</span>
+                        </div>
+                        <div style="display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap;">
+                            <span class="badge" style="background: rgba(16, 185, 129, 0.2); color: var(--success); font-size: 11px;">Operação</span>
+                        </div>
+                    </div>
+
+                    <!-- CAP-001 -->
+                    <div class="card" data-vertical="STM Capital">
+                        <div class="project-header">
+                            <div>
+                                <div class="project-title">Instagram @stm.capital</div>
+                                <div class="project-code">CAP-001</div>
+                            </div>
+                        </div>
+                        <div class="project-lead">Lead: Afrodite</div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 75%;"></div>
+                        </div>
+                        <div class="progress-text">
+                            <span>Progresso</span>
+                            <span>75%</span>
+                        </div>
+                        <div style="display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap;">
+                            <span class="badge" style="background: rgba(16, 185, 129, 0.2); color: var(--success); font-size: 11px;">Operação</span>
+                        </div>
+                    </div>
+
+                    <!-- CAP-002 -->
+                    <div class="card" data-vertical="STM Capital">
+                        <div class="project-header">
+                            <div>
+                                <div class="project-title">STM Contempla MVP</div>
+                                <div class="project-code">CAP-002</div>
+                            </div>
+                        </div>
+                        <div class="project-lead">Lead: Hefesto</div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 30%;"></div>
+                        </div>
+                        <div class="progress-text">
+                            <span>Progresso</span>
+                            <span>30%</span>
+                        </div>
+                        <div style="display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap;">
+                            <span class="badge" style="background: rgba(160, 174, 192, 0.2); color: var(--text-secondary); font-size: 11px;">Pausado ⏸</span>
+                        </div>
+                    </div>
+
+                    <!-- CAP-003 -->
+                    <div class="card" data-vertical="STM Capital">
+                        <div class="project-header">
+                            <div>
+                                <div class="project-title">Consórcio STM Capital</div>
+                                <div class="project-code">CAP-003</div>
+                            </div>
+                        </div>
+                        <div class="project-lead">Lead: Atena</div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 50%;"></div>
+                        </div>
+                        <div class="progress-text">
+                            <span>Progresso</span>
+                            <span>50%</span>
+                        </div>
+                        <div style="display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap;">
+                            <span class="badge" style="background: rgba(59, 130, 246, 0.2); color: #60a5fa; font-size: 11px;">Planejamento</span>
+                        </div>
+                    </div>
+
+                    <!-- INT-001 -->
+                    <div class="card" data-vertical="Interno">
+                        <div class="project-header">
+                            <div>
+                                <div class="project-title">Dashboard Panteão</div>
+                                <div class="project-code">INT-001</div>
+                            </div>
+                        </div>
+                        <div class="project-lead">Lead: Hefesto</div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 90%;"></div>
+                        </div>
+                        <div class="progress-text">
+                            <span>Progresso</span>
+                            <span>90%</span>
+                        </div>
+                        <div style="display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap;">
+                            <span class="badge" style="background: rgba(99, 102, 241, 0.2); color: var(--primary); font-size: 11px;">Desenvolvimento</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION 4: TASKS -->
+            <section id="tasks">
+                <div class="section-header">
+                    <h1 class="section-title">Fila de Tarefas</h1>
+                    <p class="section-subtitle">Estado de todas as tarefas em andamento, review e backlog</p>
+                </div>
+
+                <div class="tabs">
+                    <button class="tab-button active" data-tab="in-progress">Em Andamento (8)</button>
+                    <button class="tab-button" data-tab="in-review">Em Review (4)</button>
+                    <button class="tab-button" data-tab="backlog">Backlog (5)</button>
+                    <button class="tab-button" data-tab="completed">Concluídas (8)</button>
+                </div>
+
+                <!-- IN PROGRESS -->
+                <div id="in-progress" class="tab-content active">
+                    <div class="card">
+                        <div class="task-card">
+                            <div class="task-header">
+                                <span class="task-code">TSK-031</span>
+                            </div>
+                            <div class="task-title">Panteão Digital: Coordenação geral lançamento T+10</div>
+                            <div class="task-meta">
+                                <div class="task-agent">👤 Mariana</div>
+                                <div>STM Digital</div>
+                            </div>
+                        </div>
+                        <div class="task-card" style="border-top: 1px solid var(--border);">
+                            <div class="task-header">
+                                <span class="task-code">TSK-034</span>
+                            </div>
+                            <div class="task-title">Panteão Digital: Estratégia pré-lançamento + briefing tráfego pago</div>
+                            <div class="task-meta">
+                                <div class="task-agent">👤 Afrodite</div>
+                                <div>STM Digital</div>
+                            </div>
+                        </div>
+                        <div class="task-card" style="border-top: 1px solid var(--border);">
+                            <div class="task-header">
+                                <span class="task-code">TSK-035</span>
+                            </div>
+                            <div class="task-title">Panteão Digital: Setup técnico perfil Instagram @panteaodigital</div>
+                            <div class="task-meta">
+                                <div class="task-agent">👤 Hefesto</div>
+                                <div>STM Digital</div>
+                            </div>
+                        </div>
+                        <div class="task-card" style="border-top: 1px solid var(--border);">
+                            <div class="task-header">
+                                <span class="task-code">TSK-032</span>
+                            </div>
+                            <div class="task-title">Panteão Digital: Imagem dos 8 agentes + logo central</div>
+                            <div class="task-meta">
+                                <div class="task-agent">👤 Afrodite</div>
+                                <div>STM Digital</div>
+                            </div>
+                        </div>
+                        <div class="task-card" style="border-top: 1px solid var(--border);">
+                            <div class="task-header">
+                                <span class="task-code">TSK-033</span>
+                            </div>
+                            <div class="task-title">Panteão Digital: 8 capas de destaques (Stories Highlights)</div>
+                            <div class="task-meta">
+                                <div class="task-agent">👤 Afrodite</div>
+                                <div>STM Digital</div>
+                            </div>
+                        </div>
+                        <div class="task-card" style="border-top: 1px solid var(--border);">
+                            <div class="task-header">
+                                <span class="task-code">TSK-026</span>
+                            </div>
+                            <div class="task-title">Panteão Digital: QA final — E-book + landing page + emails</div>
+                            <div class="task-meta">
+                                <div class="task-agent">👤 Ares</div>
+                                <div>STM Digital</div>
+                            </div>
+                        </div>
+                        <div class="task-card" style="border-top: 1px solid var(--border);">
+                            <div class="task-header">
+                                <span class="task-code">AGI-BU01</span>
+                            </div>
+                            <div class="task-title">Abertura BU Goiás</div>
+                            <div class="task-meta">
+                                <div class="task-agent">👤 Hera</div>
+                                <div>AgiSales</div>
+                            </div>
+                        </div>
+                        <div class="task-card" style="border-top: 1px solid var(--border);">
+                            <div class="task-header">
+                                <span class="task-code">INT-SS</span>
+                            </div>
+                            <div class="task-title">Sessão ativa — Atena CSO</div>
+                            <div class="task-meta">
+                                <div class="task-agent">👤 Atena</div>
+                                <div>Interno</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- IN REVIEW -->
+                <div id="in-review" class="tab-content">
+                    <div class="card">
+                        <div class="task-card">
+                            <div class="task-header">
+                                <span class="task-code">TSK-030</span>
+                            </div>
+                            <div class="task-title">Calendário de conteúdo 12 posts (4 semanas)</div>
+                            <div class="task-meta">
+                                <div class="task-agent">👤 Afrodite</div>
+                                <div>STM Digital</div>
+                                <a href="https://drive.google.com/file/d/1AxLXLVAPMzg-ps7rMlARVDIwiznxNjqH/view" class="task-link" target="_blank">Ver entrega →</a>
+                            </div>
+                        </div>
+                        <div class="task-card" style="border-top: 1px solid var(--border);">
+                            <div class="task-header">
+                                <span class="task-code">TSK-029</span>
+                            </div>
+                            <div class="task-title">Landing page de vendas</div>
+                            <div class="task-meta">
+                                <div class="task-agent">👤 Afrodite</div>
+                                <div>STM Digital</div>
+                                <a href="https://drive.google.com/file/d/11O_muThn3zTCqvoIruoYTbMP6Nfs6xKd/view" class="task-link" target="_blank">Ver entrega →</a>
+                            </div>
+                        </div>
+                        <div class="task-card" style="border-top: 1px solid var(--border);">
+                            <div class="task-header">
+                                <span class="task-code">TSK-028</span>
+                            </div>
+                            <div class="task-title">Sequência 5 emails pós-compra</div>
+                            <div class="task-meta">
+                                <div class="task-agent">👤 Afrodite</div>
+                                <div>STM Digital</div>
+                                <a href="https://drive.google.com/file/d/11BIZQx1RojK8vy3iT2q_piZvr4HYwgZk/view" class="task-link" target="_blank">Ver entrega →</a>
+                            </div>
+                        </div>
+                        <div class="task-card" style="border-top: 1px solid var(--border);">
+                            <div class="task-header">
+                                <span class="task-code">TSK-027</span>
+                            </div>
+                            <div class="task-title">Setup plataforma de pagamento (Kiwify/Hotmart)</div>
+                            <div class="task-meta">
+                                <div class="task-agent">👤 Afrodite</div>
+                                <div>STM Digital</div>
+                                <a href="https://drive.google.com/file/d/1OiT82F-1iYFlzDYdoYY5GpID9_ozyGSu/view" class="task-link" target="_blank">Ver entrega →</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- BACKLOG -->
+                <div id="backlog" class="tab-content">
+                    <div class="card">
+                        <div class="task-card">
+                            <div class="task-header">
+                                <span class="task-code">AGI-GL</span>
+                            </div>
+                            <div class="task-title">Go Live — ativar motor em produção</div>
+                            <div class="task-meta">
+                                <div>AgiSales</div>
+                            </div>
+                        </div>
+                        <div class="task-card" style="border-top: 1px solid var(--border);">
+                            <div class="task-header">
+                                <span class="task-code">AGI-IA</span>
+                            </div>
+                            <div class="task-title">Integrar qualificação com IA (AgiSales)</div>
+                            <div class="task-meta">
+                                <div class="task-agent">👤 Hefesto</div>
+                                <div>AgiSales</div>
+                            </div>
+                        </div>
+                        <div class="task-card" style="border-top: 1px solid var(--border);">
+                            <div class="task-header">
+                                <span class="task-code">INT-DASH</span>
+                            </div>
+                            <div class="task-title">Criar dashboard de acompanhamento</div>
+                            <div class="task-meta">
+                                <div class="task-agent">👤 Hefesto</div>
+                                <div>Interno</div>
+                            </div>
+                        </div>
+                        <div class="task-card" style="border-top: 1px solid var(--border);">
+                            <div class="task-header">
+                                <span class="task-code">AGI-TR</span>
+                            </div>
+                            <div class="task-title">Treinamento comercial — módulo 1</div>
+                            <div class="task-meta">
+                                <div class="task-agent">👤 Hera</div>
+                                <div>AgiSales</div>
+                            </div>
+                        </div>
+                        <div class="task-card" style="border-top: 1px solid var(--border);">
+                            <div class="task-header">
+                                <span class="task-code">AGI-BU-MULTI</span>
+                            </div>
+                            <div class="task-title">Abertura BU Sergipe, RN, BA, CE, PB</div>
+                            <div class="task-meta">
+                                <div class="task-agent">👤 Hera</div>
+                                <div>AgiSales</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- COMPLETED -->
+                <div id="completed" class="tab-content">
+                    <div class="card">
+                        <div class="task-card">
+                            <div class="task-title" style="color: var(--success);">✅ Playbook Comercial AgiSales v2</div>
+                            <div class="task-meta">
+                                <div>AgiSales</div>
+                            </div>
+                        </div>
+                        <div class="task-card" style="border-top: 1px solid var(--border);">
+                            <div class="task-title" style="color: var(--success);">✅ Manual Comissionamento FSM e Sales Farm</div>
+                            <div class="task-meta">
+                                <div>AgiSales</div>
+                            </div>
+                        </div>
+                        <div class="task-card" style="border-top: 1px solid var(--border);">
+                            <div class="task-title" style="color: var(--success);">✅ Trilhas de Trabalho (FSM, SA, SF)</div>
+                            <div class="task-meta">
+                                <div>AgiSales</div>
+                            </div>
+                        </div>
+                        <div class="task-card" style="border-top: 1px solid var(--border);">
+                            <div class="task-title" style="color: var(--success);">✅ Estruturar Núcleo de Relacionamento</div>
+                            <div class="task-meta">
+                                <div>AgiSales</div>
+                            </div>
+                        </div>
+                        <div class="task-card" style="border-top: 1px solid var(--border);">
+                            <div class="task-title" style="color: var(--success);">✅ Configurar CRM pipeline (5 estágios)</div>
+                            <div class="task-meta">
+                                <div>AgiSales</div>
+                            </div>
+                        </div>
+                        <div class="task-card" style="border-top: 1px solid var(--border);">
+                            <div class="task-title" style="color: var(--success);">✅ Base de Conhecimento VTSD 2.0 (100%)</div>
+                            <div class="task-meta">
+                                <div>STM Digital</div>
+                            </div>
+                        </div>
+                        <div class="task-card" style="border-top: 1px solid var(--border);">
+                            <div class="task-title" style="color: var(--success);">✅ Dashboard /projects/[id] Gantt + PDF</div>
+                            <div class="task-meta">
+                                <div>Interno</div>
+                            </div>
+                        </div>
+                        <div class="task-card" style="border-top: 1px solid var(--border);">
+                            <div class="task-title" style="color: var(--success);">✅ Abertura BU MCZ Alagoas e RMR Recife</div>
+                            <div class="task-meta">
+                                <div>AgiSales</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION 5: INFRASTRUCTURE -->
+            <section id="infra">
+                <div class="section-header">
+                    <h1 class="section-title">Infraestrutura</h1>
+                    <p class="section-subtitle">Stack, serviços e fluxo operacional</p>
+                </div>
+
+                <div class="flow-diagram">
+                    <div class="flow-items">
+                        <div class="flow-item">🧑 Yuri</div>
+                        <div class="flow-arrow">→</div>
+                        <div class="flow-item">📊 Mariana</div>
+                        <div class="flow-arrow">→</div>
+                        <div class="flow-item">⚙️ Agentes</div>
+                        <div class="flow-arrow">→</div>
+                        <div class="flow-item">📊 Mariana</div>
+                        <div class="flow-arrow">→</div>
+                        <div class="flow-item">🧑 Yuri</div>
+                    </div>
+                </div>
+
+                <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 20px; color: var(--primary);">Serviços & Plataformas</h3>
+
+                <div class="grid grid-3 service-grid">
+                    <div class="card service-card">
+                        <div class="service-name">Supabase</div>
+                        <div class="service-status">
+                            <div class="status-dot"></div>
+                            <span>Operacional</span>
+                        </div>
+                        <div class="service-info">
+                            <strong>URL:</strong> duogqvusxueetapcvsfp.supabase.co<br>
+                            <strong>Banco:</strong> PostgreSQL<br>
+                            <strong>Tabelas:</strong> 8 ativas + 3 novas
+                        </div>
+                    </div>
+
+                    <div class="card service-card">
+                        <div class="service-name">Vercel</div>
+                        <div class="service-status">
+                            <div class="status-dot"></div>
+                            <span>Operacional</span>
+                        </div>
+                        <div class="service-info">
+                            <strong>App:</strong> dashboard.stmgroup.com.br<br>
+                            <strong>Framework:</strong> Next.js<br>
+                            <strong>Status:</strong> Produção
+                        </div>
+                    </div>
+
+                    <div class="card service-card">
+                        <div class="service-name">Google Drive</div>
+                        <div class="service-status">
+                            <div class="status-dot"></div>
+                            <span>Operacional</span>
+                        </div>
+                        <div class="service-info">
+                            <strong>Estrutura:</strong> Projetos + AgiSales + STM Group<br>
+                            <strong>Uso:</strong> Entregas finais<br>
+                            <strong>Status:</strong> Ativo
+                        </div>
+                    </div>
+
+                    <div class="card service-card">
+                        <div class="service-name">Telegram</div>
+                        <div class="service-status">
+                            <div class="status-dot"></div>
+                            <span>Operacional</span>
+                        </div>
+                        <div class="service-info">
+                            <strong>Uso:</strong> Notificações e alertas<br>
+                            <strong>Grupos:</strong> 3 canais ativos<br>
+                            <strong>Bots:</strong> Habilitados
+                        </div>
+                    </div>
+
+                    <div class="card service-card">
+                        <div class="service-name">Ollama</div>
+                        <div class="service-status">
+                            <div class="status-dot"></div>
+                            <span>Operacional</span>
+                        </div>
+                        <div class="service-info">
+                            <strong>Uso:</strong> Modelos locais<br>
+                            <strong>Integração:</strong> Fallback<br>
+                            <strong>Status:</strong> Ready
+                        </div>
+                    </div>
+
+                    <div class="card service-card">
+                        <div class="service-name">Notion</div>
+                        <div class="service-status">
+                            <div class="status-dot"></div>
+                            <span>Operacional</span>
+                        </div>
+                        <div class="service-info">
+                            <strong>Uso:</strong> Docs e base de dados<br>
+                            <strong>API:</strong> Configurada<br>
+                            <strong>Sync:</strong> Semanal
+                        </div>
+                    </div>
+                </div>
+
+                <h3 style="font-size: 16px; font-weight: 700; margin-top: 32px; margin-bottom: 20px; color: var(--primary);">Tabelas Supabase</h3>
+
+                <div class="grid grid-3">
+                    <div class="card" style="padding: 16px;">
+                        <div style="font-weight: 700; margin-bottom: 8px;">tasks</div>
+                        <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">Fila de tarefas completa</div>
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <div class="status-dot"></div>
+                            <span style="font-size: 11px;">Ativa</span>
+                        </div>
+                    </div>
+
+                    <div class="card" style="padding: 16px;">
+                        <div style="font-weight: 700; margin-bottom: 8px;">projects</div>
+                        <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">Projetos e milestones</div>
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <div class="status-dot"></div>
+                            <span style="font-size: 11px;">Ativa</span>
+                        </div>
+                    </div>
+
+                    <div class="card" style="padding: 16px;">
+                        <div style="font-weight: 700; margin-bottom: 8px;">knowledge</div>
+                        <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">Base de conhecimento (29 itens)</div>
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <div class="status-dot"></div>
+                            <span style="font-size: 11px;">Ativa</span>
+                        </div>
+                    </div>
+
+                    <div class="card" style="padding: 16px;">
+                        <div style="font-weight: 700; margin-bottom: 8px;">agents</div>
+                        <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">Status dos 8 agentes</div>
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <div class="status-dot"></div>
+                            <span style="font-size: 11px;">Ativa</span>
+                        </div>
+                    </div>
+
+                    <div class="card" style="padding: 16px;">
+                        <div style="font-weight: 700; margin-bottom: 8px;">deliveries</div>
+                        <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">Entregas registradas</div>
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <div class="status-dot warning"></div>
+                            <span style="font-size: 11px;">Vazia</span>
+                        </div>
+                    </div>
+
+                    <div class="card" style="padding: 16px;">
+                        <div style="font-weight: 700; margin-bottom: 8px;">history</div>
+                        <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">Histórico de mudanças</div>
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <div class="status-dot warning"></div>
+                            <span style="font-size: 11px;">Vazia</span>
+                        </div>
+                    </div>
+
+                    <div class="card" style="padding: 16px;">
+                        <div style="font-weight: 700; margin-bottom: 8px;">sites_pages</div>
+                        <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">Sites e landing pages</div>
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <div class="status-dot warning"></div>
+                            <span style="font-size: 11px;">Vazia</span>
+                        </div>
+                    </div>
+
+                    <div class="card" style="padding: 16px;">
+                        <div style="font-weight: 700; margin-bottom: 8px;">olimpo_index</div>
+                        <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">Índice central unificado</div>
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <div class="status-dot warning"></div>
+                            <span style="font-size: 11px;">Vazia</span>
+                        </div>
+                    </div>
+                </div>
+
+                <h3 style="font-size: 16px; font-weight: 700; margin-top: 32px; margin-bottom: 20px; color: var(--primary);">Automações (Crons)</h3>
+
+                <div class="grid grid-2">
+                    <div class="card" style="padding: 20px;">
+                        <div style="font-weight: 700; margin-bottom: 8px;">agent-status-monitor</div>
+                        <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 12px;">Monitora status dos agentes</div>
+                        <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
+                            <div class="status-dot"></div>
+                            <span style="font-size: 11px;">Ativa</span>
+                        </div>
+                        <div style="font-size: 11px; color: var(--text-secondary);">⏱️ A cada 15 min | Última: 3 min atrás</div>
+                    </div>
+
+                    <div class="card" style="padding: 20px;">
+                        <div style="font-weight: 700; margin-bottom: 8px;">destilacao-semanal</div>
+                        <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 12px;">Destila conhecimento acumulado</div>
+                        <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
+                            <div class="status-dot"></div>
+                            <span style="font-size: 11px;">Ativa</span>
+                        </div>
+                        <div style="font-size: 11px; color: var(--text-secondary);">⏱️ Domingos 23h BRT</div>
+                    </div>
+
+                    <div class="card" style="padding: 20px;">
+                        <div style="font-weight: 700; margin-bottom: 8px;">prioridades-semana</div>
+                        <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 12px;">Define prioridades semanais</div>
+                        <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
+                            <div class="status-dot warning"></div>
+                            <span style="font-size: 11px;">Erro</span>
+                        </div>
+                        <div style="font-size: 11px; color: var(--text-secondary);">⏱️ Segunda 12h BRT | ⚠️ Última falha</div>
+                    </div>
+
+                    <div class="card" style="padding: 20px;">
+                        <div style="font-weight: 700; margin-bottom: 8px;">sync-notion-trello</div>
+                        <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 12px;">Sincroniza Notion ↔ Trello</div>
+                        <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
+                            <div class="status-dot"></div>
+                            <span style="font-size: 11px;">Ativa</span>
+                        </div>
+                        <div style="font-size: 11px; color: var(--text-secondary);">⏱️ Sexta 18h BRT</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION 6: KNOWLEDGE BASE -->
+            <section id="knowledge">
+                <div class="section-header">
+                    <h1 class="section-title">Base de Conhecimento</h1>
+                    <p class="section-subtitle">29 itens documentados, categorizados por tipo e importância</p>
+                </div>
+
+                <div class="card">
+                    <div class="knowledge-item">
+                        <div class="knowledge-title">Playbook Comercial AgiSales v2</div>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <span class="knowledge-category">processo</span>
+                            <span class="knowledge-importance alto">Alto</span>
+                        </div>
+                    </div>
+
+                    <div class="knowledge-item">
+                        <div class="knowledge-title">Manual Comissionamento FSM e Sales Farm</div>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <span class="knowledge-category">decisão</span>
+                            <span class="knowledge-importance alto">Alto</span>
+                        </div>
+                    </div>
+
+                    <div class="knowledge-item">
+                        <div class="knowledge-title">Trilhas de Trabalho (FSM, SA, SF)</div>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <span class="knowledge-category">processo</span>
+                            <span class="knowledge-importance normal">Normal</span>
+                        </div>
+                    </div>
+
+                    <div class="knowledge-item">
+                        <div class="knowledge-title">CRM Pipeline Configuração (5 estágios)</div>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <span class="knowledge-category">configuração</span>
+                            <span class="knowledge-importance alto">Alto</span>
+                        </div>
+                    </div>
+
+                    <div class="knowledge-item">
+                        <div class="knowledge-title">Estrutura de Núcleo de Relacionamento</div>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <span class="knowledge-category">decisão</span>
+                            <span class="knowledge-importance alto">Alto</span>
+                        </div>
+                    </div>
+
+                    <div class="knowledge-item">
+                        <div class="knowledge-title">API Supabase — Credenciais e Setup</div>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <span class="knowledge-category">credencial</span>
+                            <span class="knowledge-importance critico">Crítico</span>
+                        </div>
+                    </div>
+
+                    <div class="knowledge-item">
+                        <div class="knowledge-title">Protocolos de Notificação Telegram</div>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <span class="knowledge-category">processo</span>
+                            <span class="knowledge-importance alto">Alto</span>
+                        </div>
+                    </div>
+
+                    <div class="knowledge-item">
+                        <div class="knowledge-title">Delegação de Agentes — Sessions Spawn</div>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <span class="knowledge-category">configuração</span>
+                            <span class="knowledge-importance critico">Crítico</span>
+                        </div>
+                    </div>
+
+                    <div class="knowledge-item">
+                        <div class="knowledge-title">Padrão de Código — Naming Conventions</div>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <span class="knowledge-category">processo</span>
+                            <span class="knowledge-importance normal">Normal</span>
+                        </div>
+                    </div>
+
+                    <div class="knowledge-item">
+                        <div class="knowledge-title">Fluxo de Review e QA Padrão</div>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <span class="knowledge-category">processo</span>
+                            <span class="knowledge-importance critico">Crítico</span>
+                        </div>
+                    </div>
+
+                    <div class="knowledge-item">
+                        <div class="knowledge-title">Estilo de Linguagem STM Group</div>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <span class="knowledge-category">decisão</span>
+                            <span class="knowledge-importance normal">Normal</span>
+                        </div>
+                    </div>
+
+                    <div class="knowledge-item">
+                        <div class="knowledge-title">Integração Next.js + Supabase</div>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <span class="knowledge-category">processo</span>
+                            <span class="knowledge-importance alto">Alto</span>
+                        </div>
+                    </div>
+
+                    <div class="knowledge-item">
+                        <div class="knowledge-title">Deploy Strategy — Vercel + Drive</div>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <span class="knowledge-category">decisão</span>
+                            <span class="knowledge-importance alto">Alto</span>
+                        </div>
+                    </div>
+
+                    <div class="knowledge-item">
+                        <div class="knowledge-title">Métricas de Sucesso por Projeto</div>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <span class="knowledge-category">decisão</span>
+                            <span class="knowledge-importance normal">Normal</span>
+                        </div>
+                    </div>
+
+                    <div class="knowledge-item">
+                        <div class="knowledge-title">Calendário de Lançamentos 2026</div>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <span class="knowledge-category">fato</span>
+                            <span class="knowledge-importance alto">Alto</span>
+                        </div>
+                    </div>
+
+                    <div class="knowledge-item">
+                        <div class="knowledge-title">Contatos Principais — Yuri e Stakeholders</div>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <span class="knowledge-category">contato</span>
+                            <span class="knowledge-importance critico">Crítico</span>
+                        </div>
+                    </div>
+
+                    <div class="knowledge-item">
+                        <div class="knowledge-title">Documentação Video Pipeline IA</div>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <span class="knowledge-category">processo</span>
+                            <span class="knowledge-importance normal">Normal</span>
+                        </div>
+                    </div>
+
+                    <div class="knowledge-item">
+                        <div class="knowledge-title">Análise de Concorrência — E-books Digitais</div>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <span class="knowledge-category">pesquisa</span>
+                            <span class="knowledge-importance normal">Normal</span>
+                        </div>
+                    </div>
+
+                    <div class="knowledge-item">
+                        <div class="knowledge-title">Briefing Campanha Instagram STM Capital</div>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <span class="knowledge-category">decisão</span>
+                            <span class="knowledge-importance alto">Alto</span>
+                        </div>
+                    </div>
+
+                    <div class="knowledge-item">
+                        <div class="knowledge-title">Modelo de Comissão Agentes Novo</div>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <span class="knowledge-category">decisão</span>
+                            <span class="knowledge-importance critico">Crítico</span>
+                        </div>
+                    </div>
+
+                    <div class="knowledge-item">
+                        <div class="knowledge-title">Roadmap Técnico Q1-Q4 2026</div>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <span class="knowledge-category">decisão</span>
+                            <span class="knowledge-importance critico">Crítico</span>
+                        </div>
+                    </div>
+
+                    <div class="knowledge-item">
+                        <div class="knowledge-title">Backup Strategy — Google Drive + Supabase</div>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <span class="knowledge-category">configuração</span>
+                            <span class="knowledge-importance critico">Crítico</span>
+                        </div>
+                    </div>
+
+                    <div class="knowledge-item">
+                        <div class="knowledge-title">Resolução: Problema X no Deploy Y</div>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <span class="knowledge-category">bloqueio</span>
+                            <span class="knowledge-importance normal">Normal</span>
+                        </div>
+                    </div>
+
+                    <div class="knowledge-item">
+                        <div class="knowledge-title">Training Material — Agentes Novos</div>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <span class="knowledge-category">processo</span>
+                            <span class="knowledge-importance normal">Normal</span>
+                        </div>
+                    </div>
+
+                    <div class="knowledge-item">
+                        <div class="knowledge-title">Template Email Notificação Padrão</div>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <span class="knowledge-category">processo</span>
+                            <span class="knowledge-importance normal">Normal</span>
+                        </div>
+                    </div>
+
+                    <div class="knowledge-item">
+                        <div class="knowledge-title">SLA por Tipo de Tarefa (A ser definido)</div>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <span class="knowledge-category">decisão</span>
+                            <span class="knowledge-importance critico">Crítico</span>
+                        </div>
+                    </div>
+
+                    <div class="knowledge-item">
+                        <div class="knowledge-title">Matriz RACI — Projetos STM Digital</div>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <span class="knowledge-category">decisão</span>
+                            <span class="knowledge-importance alto">Alto</span>
+                        </div>
+                    </div>
+
+                    <div class="knowledge-item">
+                        <div class="knowledge-title">Machine Learning — Feature Eng AgiSales</div>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <span class="knowledge-category">pesquisa</span>
+                            <span class="knowledge-importance normal">Normal</span>
+                        </div>
+                    </div>
+
+                    <div class="knowledge-item">
+                        <div class="knowledge-title">Recurso de Privacidade — LGPD Compliance</div>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <span class="knowledge-category">decisão</span>
+                            <span class="knowledge-importance critico">Crítico</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION 7: ANALYSIS -->
+            <section id="analysis">
+                <div class="section-header">
+                    <h1 class="section-title">Análise & Melhorias</h1>
+                    <p class="section-subtitle">O que precisa ser corrigido, melhorado e evoluído</p>
+                </div>
+
+                <!-- CRITICAL -->
+                <div class="analysis-block critical">
+                    <div class="analysis-title">🔴 CRÍTICO — Corrigir Agora</div>
+
+                    <div class="analysis-item">
+                        <div class="analysis-item-title">1. Tasks sem código padronizado</div>
+                        <div class="analysis-item-desc">
+                            Maioria das tarefas não possui código único (code=null). Impacta rastreabilidade e integração com sistemas externos. Solução: Estabelecer padrão de nomenclatura e validar ao criar tarefa.
+                        </div>
+                    </div>
+
+                    <div class="analysis-item">
+                        <div class="analysis-item-title">2. Tabelas novas vazias</div>
+                        <div class="analysis-item-desc">
+                            history, deliveries, sites_pages e olimpo_index criadas mas não populadas. Reduz visibilidade de entregas e histórico. Solução: Protocolo de preenchimento obrigatório ao concluir cada tarefa.
+                        </div>
+                    </div>
+
+                    <div class="analysis-item">
+                        <div class="analysis-item-title">3. Cron prioridades-semana com erro</div>
+                        <div class="analysis-item-desc">
+                            Automação não executada corretamente na última semana. Afeta priorização de tarefas. Solução: Debug imediato e substituição por versão estável.
+                        </div>
+                    </div>
+
+                    <div class="analysis-item">
+                        <div class="analysis-item-title">4. Afrodite acima do WIP limit</div>
+                        <div class="analysis-item-desc">
+                            4 tarefas em progresso simultâneo (limit: 3). Risco de qualidade reduzida e atrasos. Solução: Redirecionar TSK-032 e TSK-033 ou priorizar conclusão de TSK-034.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- IMPORTANT -->
+                <div class="analysis-block important">
+                    <div class="analysis-title">🟡 IMPORTANTE — Próximas Semanas</div>
+
+                    <div class="analysis-item">
+                        <div class="analysis-item-title">5. Implementar SLA por tipo de tarefa</div>
+                        <div class="analysis-item-desc">
+                            Não há SLA definido. Facilita atrasos e expectativas imprecisas. Solução: Criar tabela SLA (design: 24h, dev: 48h, review: 12h) e monitorar via cron.
+                        </div>
+                    </div>
+
+                    <div class="analysis-item">
+                        <div class="analysis-item-title">6. Protocolo QA obrigatório</div>
+                        <div class="analysis-item-desc">
+                            Tarefas indo para review sem QA. Aumenta retrabalho. Solução: Exigir badge "QA OK" antes de status="review".
+                        </div>
+                    </div>
+
+                    <div class="analysis-item">
+                        <div class="analysis-item-title">7. Popular olimpo_index</div>
+                        <div class="analysis-item-desc">
+                            Índice central vazio. Dificulta busca cross-project. Solução: Sincronizar todos projetos + knowledge items + sites em um índice único.
+                        </div>
+                    </div>
+
+                    <div class="analysis-item">
+                        <div class="analysis-item-title">8. Registrar sites_pages</div>
+                        <div class="analysis-item-desc">
+                            Dashboard, landing pages e sites não catalogados. Solução: Varrida de todos os assets e preenchimento da tabela.
+                        </div>
+                    </div>
+
+                    <div class="analysis-item">
+                        <div class="analysis-item-title">9. Testar delegação via sessions_spawn</div>
+                        <div class="analysis-item-desc">
+                            Recurso habilitado mas nunca foi validado com agentes reais. Risco de falha em produção. Solução: Teste controlado com Hefesto → AGI-001.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- EVOLUTION -->
+                <div class="analysis-block evolution">
+                    <div class="analysis-title">🟢 EVOLUÇÃO — Próximos Meses</div>
+
+                    <div class="analysis-item">
+                        <div class="analysis-item-title">10. Dashboard com history e sites_pages</div>
+                        <div class="analysis-item-desc">
+                            Adicionar views ao dashboard.stmgroup.com.br para visualizar histórico completo e sites. Timeline de mudanças por projeto.
+                        </div>
+                    </div>
+
+                    <div class="analysis-item">
+                        <div class="analysis-item-title">11. Memory compartilhada via Supabase</div>
+                        <div class="analysis-item-desc">
+                            Substituir MEMORY.md local por tabela memoria_agentes no Supabase. Permite cross-session insights automáticos.
+                        </div>
+                    </div>
+
+                    <div class="analysis-item">
+                        <div class="analysis-item-title">12. SLA e alertas automáticos</div>
+                        <div class="analysis-item-desc">
+                            Cron monitorando SLA. Se tarefa > SLA, notifica Telegram a Mariana e lead.
+                        </div>
+                    </div>
+
+                    <div class="analysis-item">
+                        <div class="analysis-item-title">13. Métricas por agente</div>
+                        <div class="analysis-item-desc">
+                            Dashboard com tasks/semana, tempo médio conclusão, taxa QA aprovada. Identifica gargalos.
+                        </div>
+                    </div>
+
+                    <div class="analysis-item">
+                        <div class="analysis-item-title">14. Retrospectiva automatizada</div>
+                        <div class="analysis-item-desc">
+                            Cron sexta 18h compilando lições da semana. Gera report automático para Mariana revisar.
+                        </div>
+                    </div>
+
+                    <div class="analysis-item">
+                        <div class="analysis-item-title">15. Notion bidirecional em tempo real</div>
+                        <div class="analysis-item-desc">
+                            Integração Supabase ↔ Notion API. Mudanças propagam instantaneamente. Reduz 80% do overhead de sync manual.
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION 8: ROADMAP -->
+            <section id="roadmap">
+                <div class="section-header">
+                    <h1 class="section-title">Roadmap 2026</h1>
+                    <p class="section-subtitle">Evolução do Panteão trimestre por trimestre</p>
+                </div>
+
+                <div class="roadmap-container">
+                    <div class="roadmap">
+                        <div class="roadmap-quarter">
+                            <div class="quarter-header">Q1 2026</div>
+                            <div class="quarter-items">
+                                <div class="quarter-item">✅ Estrutura base consolidada</div>
+                                <div class="quarter-item">✅ Delegação habilitada e testada</div>
+                                <div class="quarter-item">✅ Protocolos de QA em uso</div>
+                                <div class="quarter-item">✅ Código padrão implementado</div>
+                                <div class="quarter-item">📌 Tarefas 3 primeiros sprints</div>
+                            </div>
+                        </div>
+
+                        <div class="roadmap-quarter">
+                            <div class="quarter-header">Q2 2026</div>
+                            <div class="quarter-items">
+                                <div class="quarter-item">🎯 Automação plena do Panteão</div>
+                                <div class="quarter-item">📊 SLAs por tipo operacionalizados</div>
+                                <div class="quarter-item">📈 Métricas de performance ativas</div>
+                                <div class="quarter-item">🔄 Sincronização Notion real-time</div>
+                                <div class="quarter-item">🎪 Panteão estável em produção</div>
+                            </div>
+                        </div>
+
+                        <div class="roadmap-quarter">
+                            <div class="quarter-header">Q3 2026</div>
+                            <div class="quarter-items">
+                                <div class="quarter-item">🤖 AI-driven operations</div>
+                                <div class="quarter-item">🔮 Predictive task assignment</div>
+                                <div class="quarter-item">🧠 Memory compartilhada habilitada</div>
+                                <div class="quarter-item">📡 Integração inter-agentes</div>
+                                <div class="quarter-item">⚡ Otimização de custos 50%</div>
+                            </div>
+                        </div>
+
+                        <div class="roadmap-quarter">
+                            <div class="quarter-header">Q4 2026</div>
+                            <div class="quarter-items">
+                                <div class="quarter-item">🏆 Panteão autônomo</div>
+                                <div class="quarter-item">👁️ Supervisão mínima necessária</div>
+                                <div class="quarter-item">📊 Dashboard executive-ready</div>
+                                <div class="quarter-item">🎯 100% de SLA compliance</div>
+                                <div class="quarter-item">🚀 Ready para scaling</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card" style="margin-top: 32px;">
+                    <h3 style="margin-bottom: 16px; font-size: 16px; font-weight: 700;">Visão Geral</h3>
+                    <p style="color: var(--text-secondary); margin-bottom: 12px;">
+                        O Panteão evolui de uma estrutura manual (Q1) para uma operação totalmente autônoma (Q4). Cada trimestre adiciona uma camada de inteligência e automação.
+                    </p>
+                    <p style="color: var(--text-secondary);">
+                        <strong>Métrica de sucesso:</strong> Reduzir tempo de Mariana com operações de 80% (agora) para 20% (Q4). Os 8 agentes rodam praticamente sozinhos com monitoramento passivo.
+                    </p>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        // ===== NAVIGATION & SECTIONS =====
+        const navLinks = document.querySelectorAll('.nav-link');
+        const sections = document.querySelectorAll('section');
+
+        navLinks.forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const target = link.dataset.section;
+
+                navLinks.forEach(l => l.classList.remove('active'));
+                sections.forEach(s => s.classList.remove('active'));
+
+                link.classList.add('active');
+                document.getElementById(target).classList.add('active');
+                
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+        });
+
+        // ===== TABS =====
+        const tabButtons = document.querySelectorAll('.tab-button');
+        const tabContents = document.querySelectorAll('.tab-content');
+
+        tabButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const target = button.dataset.tab;
+
+                tabButtons.forEach(b => b.classList.remove('active'));
+                tabContents.forEach(c => c.classList.remove('active'));
+
+                button.classList.add('active');
+                document.getElementById(target).classList.add('active');
+            });
+        });
+
+        // ===== FILTERS =====
+        const filterButtons = document.querySelectorAll('.filter-btn');
+        const projectCards = document.querySelectorAll('[data-vertical]');
+
+        filterButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const filter = button.dataset.filter;
+
+                filterButtons.forEach(b => b.classList.remove('active'));
+                button.classList.add('active');
+
+                projectCards.forEach(card => {
+                    if (filter === 'all' || card.dataset.vertical === filter) {
+                        card.style.display = 'block';
+                    } else {
+                        card.style.display = 'none';
+                    }
+                });
+            });
+        });
+
+        // ===== CURRENT TIME =====
+        function updateTime() {
+            const now = new Date();
+            const timeString = now.toLocaleString('pt-BR', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+            const timeElement = document.getElementById('current-time');
+            if (timeElement) {
+                timeElement.textContent = timeString;
+            }
+        }
+
+        updateTime();
+        setInterval(updateTime, 1000);
+
+        // ===== SCROLL SPY =====
+        window.addEventListener('scroll', () => {
+            let current = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                const sectionHeight = section.clientHeight;
+                if (window.pageYOffset >= sectionTop - 200) {
+                    current = section.getAttribute('id');
+                }
+            });
+
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.dataset.section === current) {
+                    link.classList.add('active');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
