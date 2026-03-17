@@ -1,302 +1,252 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import {
-  KeyRound, Eye, EyeOff, Copy, CheckCircle, AlertCircle,
-  Instagram, Shield, Clock, Hash, Link, AppWindow, RefreshCw,
-  ChevronDown, ChevronUp,
+  Shield, Eye, EyeOff, Copy, CheckCircle, AlertCircle,
+  KeyRound, Hash, RefreshCw, ChevronDown, ChevronUp,
+  Lock, LogOut, Search, Tag,
 } from "lucide-react";
 
 // ═══════════════════════════════════════════════════════════════════════
-// TYPES & DATA
+// TYPES
 // ═══════════════════════════════════════════════════════════════════════
 
-type CredStatus = "ativo" | "expirado" | "pendente" | "nao-expira";
-
-interface Credential {
-  id: string;
-  service: string;
-  account: string;
-  type: string;
-  token: string;          // full token (shown only when revealed)
-  tokenPreview: string;   // first 20 chars + "..."
-  status: CredStatus;
-  expiresAt?: string;
-  generatedAt: string;
-  metadata?: Record<string, string>;
+interface CredRecord {
+  code: string;
+  title: string;
+  content: string;   // JSON string
+  category: string;
   tags: string[];
-  icon: string;
-  color: string;
-  notes?: string;
+  importance: string;
+  updated_at: string;
 }
 
-const CREDENTIALS: Credential[] = [
-  {
-    id: "ig-panteao",
-    service: "Instagram / Meta Graph API",
-    account: "@panteao_digital",
-    type: "Page Access Token",
-    token: "EAAN_TOKEN_REDACTED_SEE_SUPABASE_KNW030",
-    tokenPreview: "EAAN_TOKEN_REDACTED_SEE_SUPABASE_KNW030...",
-    status: "nao-expira",
-    generatedAt: "17/03/2026",
-    metadata: {
-      "IG User ID":       "17841443429666137",
-      "Facebook Page ID": "1046722971852379",
-      "Facebook Page":    "Panteão digital",
-      "App ID":           "958102276563402",
-      "App Name":         "Panteão Digital",
-      "Endpoint":         "POST https://graph.facebook.com/v25.0/17841443429666137/media",
-    },
-    tags: ["instagram", "meta", "panteao-digital", "nao-expira"],
-    icon: "📸",
-    color: "#C9A84C",
-    notes: "Page Access Token de longa duração gerado via Meta Business Suite. Substituiu o token expirado de 17/03/2026.",
-  },
-  {
-    id: "gemini-api",
-    service: "Gemini API (Google)",
-    account: "yuri.moraes@stmgroup.com.br",
-    type: "API Key",
-    token: "GEMINI_KEY_SEE_SUPABASE_KNW026",
-    tokenPreview: "AIzaSyBAgdy71pWjPmx6...",
-    status: "ativo",
-    generatedAt: "2026-01-01",
-    metadata: {
-      "Var ambiente": "GEMINI_API_KEY",
-      "Script":       "/home/ceo-mariana/.openclaw/workspace/shared/mediagen.sh",
-      "Output":       "/home/ceo-mariana/shared/media/",
-      "Modelo":       "gemini-2.0-flash-preview-image-generation",
-    },
-    tags: ["gemini", "google", "imagens", "ia"],
-    icon: "✨",
-    color: "#4285F4",
-    notes: "Usada para geração de imagens via mediagen.sh",
-  },
-  {
-    id: "fal-api",
-    service: "fal.ai — Geração de Vídeos",
-    account: "yuri.moraes@outlook.com.br",
-    type: "API Key",
-    token: "FAL_KEY_SEE_SUPABASE_KNW023",
-    tokenPreview: "0069113f-6a6b-4867-8b...",
-    status: "ativo",
-    generatedAt: "2026-01-01",
-    metadata: {
-      "Base URL": "https://fal.run",
-      "Modelos":  "Veo 3.1, Seedance 2.0, Kling, Nano Banana 2",
-    },
-    tags: ["fal", "video", "ia"],
-    icon: "🎬",
-    color: "#9B7EC8",
-  },
-  {
-    id: "hedra-api",
-    service: "Hedra — Avatar Lip Sync",
-    account: "yuri.moraes@outlook.com.br",
-    type: "API Key",
-    token: "HEDRA_KEY_SEE_SUPABASE_KNW025",
-    tokenPreview: "HEDRA_KEY_SEE_SUPABASE_KNW025...",
-    status: "ativo",
-    generatedAt: "2026-01-01",
-    metadata: {
-      "Base URL": "https://api.hedra.com",
-      "Uso":      "Foto + áudio → vídeo avatar lip sync",
-    },
-    tags: ["hedra", "avatar", "lip-sync", "video"],
-    icon: "🎭",
-    color: "#F59E0B",
-  },
-  {
-    id: "creatomate-api",
-    service: "Creatomate — Edição de Vídeo",
-    account: "—",
-    type: "API Key",
-    token: "CREATOMATE_KEY_SEE_SUPABASE_KNW024",
-    tokenPreview: "fa7abf10aa324241a258...",
-    status: "ativo",
-    generatedAt: "2026-01-01",
-    metadata: {
-      "Project ID":  "fa7abf10-aa32-4241-a258-665912dfb8cf",
-      "Base URL":    "https://api.creatomate.com/v1",
-      "Template ID": "987b4d6e-8e4a-4ac9-a076-73866ebdc5ec",
-      "Template":    "Highlighted Subtitles",
-    },
-    tags: ["creatomate", "video", "edicao"],
-    icon: "🎞️",
-    color: "#06B6D4",
-  },
-  {
-    id: "github-token",
-    service: "GitHub",
-    account: "MarianaAssistente",
-    type: "Personal Access Token",
-    token: "GHP_TOKEN_SEE_SUPABASE",
-    tokenPreview: "ghp_fzTA58OZVYzUAqNWZ...",
-    status: "ativo",
-    expiresAt: "06/06/2026",
-    generatedAt: "2025-06-06",
-    metadata: {
-      "Username": "MarianaAssistente",
-      "Repos":    "stmgroup-site, panteon-dashboard, stmcapital-legal",
-      "Pages":    "marianaassistente.github.io",
-    },
-    tags: ["github", "git", "repos"],
-    icon: "🐙",
-    color: "#F5F5F5",
-  },
-];
+// Service icon / color mapping by keyword
+function inferIcon(title: string, code: string): { icon: string; color: string } {
+  const t = (title + code).toLowerCase();
+  if (t.includes("instagram") || t.includes("panteao") || t.includes("stm.capital")) return { icon:"📸", color:"#C9A84C" };
+  if (t.includes("supabase"))    return { icon:"🗄️",  color:"#3ECF8E" };
+  if (t.includes("vercel"))      return { icon:"▲",   color:"#F5F5F5" };
+  if (t.includes("github"))      return { icon:"🐙",  color:"#9B7EC8" };
+  if (t.includes("gemini"))      return { icon:"✨",  color:"#4285F4" };
+  if (t.includes("elevenlabs"))  return { icon:"🎙️", color:"#F59E0B" };
+  if (t.includes("fal"))         return { icon:"🎬",  color:"#9B7EC8" };
+  if (t.includes("creatomate"))  return { icon:"🎞️", color:"#06B6D4" };
+  if (t.includes("hedra"))       return { icon:"🎭",  color:"#F59E0B" };
+  if (t.includes("notion"))      return { icon:"📋",  color:"#F5F5F5" };
+  if (t.includes("drive"))       return { icon:"📁",  color:"#34A853" };
+  return { icon:"🔑", color:"#C9A84C" };
+}
 
-// ═══════════════════════════════════════════════════════════════════════
-// STATUS CONFIG
-// ═══════════════════════════════════════════════════════════════════════
-
-const STATUS_CFG: Record<CredStatus, { label: string; color: string; bg: string; dot: string }> = {
-  "ativo":       { label: "Ativo",       color: "#4ADE80", bg: "#4ADE8018", dot: "#4ADE80" },
-  "nao-expira":  { label: "Não expira",  color: "#C9A84C", bg: "#C9A84C18", dot: "#C9A84C" },
-  "expirado":    { label: "Expirado",    color: "#EF4444", bg: "#EF444418", dot: "#EF4444" },
-  "pendente":    { label: "Pendente",    color: "#F59E0B", bg: "#F59E0B18", dot: "#F59E0B" },
+const IMPORTANCE_CFG: Record<string,{color:string;bg:string}> = {
+  "crítico": { color:"#EF4444", bg:"#EF444415" },
+  "alto":    { color:"#F59E0B", bg:"#F59E0B15" },
+  "normal":  { color:"#4ADE80", bg:"#4ADE8015" },
 };
 
 // ═══════════════════════════════════════════════════════════════════════
-// CREDENTIAL CARD
+// PARSED CONTENT RENDERER
 // ═══════════════════════════════════════════════════════════════════════
 
-function CredentialCard({ cred }: { cred: Credential }) {
+const SENSITIVE_KEYS = new Set([
+  "page_access_token","api_key","service_role_key","anon_key","db_password",
+  "token","secret","app_secret","meta_app_secret","password",
+]);
+
+function ContentField({ label, value }: { label: string; value: string }) {
+  const isSensitive = SENSITIVE_KEYS.has(label.toLowerCase().replace(/ /g,"_"));
   const [revealed, setRevealed] = useState(false);
   const [copied, setCopied]     = useState(false);
-  const [expanded, setExpanded] = useState(cred.id === "ig-panteao"); // open by default for new token
 
-  const st = STATUS_CFG[cred.status];
+  const display = isSensitive && !revealed
+    ? value.slice(0, 22) + "..."
+    : value;
 
-  async function copyToken() {
-    await navigator.clipboard.writeText(cred.token);
+  async function copy() {
+    await navigator.clipboard.writeText(value);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }
 
   return (
-    <div className={`bg-[#0D0D0D] rounded-2xl overflow-hidden border transition-all ${
-      cred.id === "ig-panteao"
-        ? "border-[#C9A84C]/30 shadow-lg shadow-[#C9A84C]/5"
-        : "border-white/8"
-    }`}>
-      {/* Header row */}
+    <div className="flex items-start gap-2 py-2 border-b border-white/5 last:border-0">
+      <span className="text-[10px] text-[#F5F5F5]/30 w-36 flex-shrink-0 pt-0.5 capitalize">
+        {label.replace(/_/g," ")}
+      </span>
+      <div className="flex items-center gap-1.5 flex-1 min-w-0">
+        <code className={`text-xs font-mono break-all flex-1 ${
+          isSensitive && !revealed ? "text-[#C9A84C]/60" : "text-[#F5F5F5]/75"
+        }`}>
+          {display}
+        </code>
+        {isSensitive && (
+          <button onClick={() => setRevealed(r => !r)}
+            className="p-1 rounded hover:bg-white/5 text-[#F5F5F5]/25 hover:text-[#F5F5F5]/60 flex-shrink-0 transition-colors"
+            title={revealed ? "Ocultar" : "Revelar"}>
+            {revealed ? <EyeOff size={11}/> : <Eye size={11}/>}
+          </button>
+        )}
+        <button onClick={copy}
+          className="p-1 rounded hover:bg-white/5 flex-shrink-0 transition-colors"
+          style={{ color: copied ? "#4ADE80" : "#F5F5F540" }}
+          title="Copiar">
+          {copied ? <CheckCircle size={11}/> : <Copy size={11}/>}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function CredCard({ rec }: { rec: CredRecord }) {
+  const [expanded, setExpanded] = useState(false);
+  const { icon, color } = inferIcon(rec.title, rec.code);
+  const imp = IMPORTANCE_CFG[rec.importance] ?? IMPORTANCE_CFG["normal"];
+
+  let parsed: Record<string,string> = {};
+  try { parsed = JSON.parse(rec.content); } catch { parsed = { conteudo: rec.content }; }
+
+  return (
+    <div className="bg-[#0D0D0D] border border-white/8 rounded-2xl overflow-hidden">
       <button
         className="w-full flex items-center gap-3 px-5 py-4 hover:bg-white/[0.02] transition-colors text-left"
         onClick={() => setExpanded(e => !e)}
       >
         {/* Icon */}
         <div className="w-9 h-9 rounded-xl flex items-center justify-center text-lg flex-shrink-0"
-          style={{ background: `${cred.color}18`, border: `1px solid ${cred.color}30` }}>
-          {cred.icon}
+          style={{ background:`${color}18`, border:`1px solid ${color}30` }}>
+          {icon}
         </div>
 
-        {/* Service + account */}
+        {/* Info */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm font-bold text-[#F5F5F5]">{cred.service}</span>
-            {cred.id === "ig-panteao" && (
-              <span className="text-[9px] px-1.5 py-0.5 rounded bg-[#C9A84C]/15 border border-[#C9A84C]/30 text-[#C9A84C] font-semibold">
-                ✨ NOVO
+          <p className="text-sm font-bold text-[#F5F5F5] truncate">{rec.title}</p>
+          <div className="flex items-center gap-2 mt-0.5">
+            <span className="text-[9px] font-mono text-[#F5F5F5]/20">{rec.code}</span>
+            <span className="text-[10px] px-1.5 py-0.5 rounded font-medium"
+              style={{ color:imp.color, background:imp.bg }}>
+              {rec.importance}
+            </span>
+            {rec.tags?.slice(0,3).map(t => (
+              <span key={t} className="text-[9px] px-1.5 py-0.5 rounded-full bg-white/5 text-[#F5F5F5]/25">
+                #{t}
               </span>
-            )}
-          </div>
-          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-            <span className="text-[10px] text-[#F5F5F5]/40">{cred.account}</span>
-            <span className="text-[10px] text-[#F5F5F5]/20">·</span>
-            <span className="text-[10px] text-[#F5F5F5]/40">{cred.type}</span>
+            ))}
           </div>
         </div>
 
-        {/* Status + expiry */}
+        {/* Field count */}
         <div className="flex items-center gap-2 flex-shrink-0">
-          <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] font-semibold"
-            style={{ color: st.color, background: st.bg }}>
-            <span className="w-1.5 h-1.5 rounded-full" style={{ background: st.dot }}/>
-            {st.label}
+          <span className="text-[10px] text-[#F5F5F5]/20">
+            {Object.keys(parsed).length} campos
           </span>
-          {cred.expiresAt && (
-            <span className="text-[10px] text-[#F5F5F5]/25 flex items-center gap-1">
-              <Clock size={9}/>{cred.expiresAt}
-            </span>
-          )}
-          <span className="text-[#F5F5F5]/20 ml-1">
+          <span className="text-[#F5F5F5]/20">
             {expanded ? <ChevronUp size={14}/> : <ChevronDown size={14}/>}
           </span>
         </div>
       </button>
 
-      {/* Expanded body */}
       {expanded && (
-        <div className="border-t border-white/5 px-5 py-4 space-y-4">
-          {/* Token row */}
-          <div>
-            <p className="text-[9px] text-[#F5F5F5]/25 uppercase tracking-wider mb-2 flex items-center gap-1">
-              <KeyRound size={9}/> Token
+        <div className="border-t border-white/5 px-5 py-4">
+          {Object.entries(parsed).map(([k, v]) => (
+            <ContentField key={k} label={k} value={String(v)}/>
+          ))}
+          {rec.updated_at && (
+            <p className="text-[9px] text-[#F5F5F5]/15 mt-3 flex items-center gap-1">
+              <RefreshCw size={8}/> Atualizado: {new Date(rec.updated_at).toLocaleString("pt-BR")}
             </p>
-            <div className="flex items-center gap-2 p-3 bg-[#080808] border border-white/5 rounded-xl">
-              <code className="flex-1 text-xs font-mono text-[#C9A84C]/80 truncate select-all">
-                {revealed ? cred.token : cred.tokenPreview}
-              </code>
-              <button onClick={() => setRevealed(r => !r)}
-                className="p-1.5 rounded-lg hover:bg-white/5 text-[#F5F5F5]/30 hover:text-[#F5F5F5]/60 transition-colors flex-shrink-0"
-                title={revealed ? "Ocultar" : "Revelar"}>
-                {revealed ? <EyeOff size={13}/> : <Eye size={13}/>}
-              </button>
-              <button onClick={copyToken}
-                className="p-1.5 rounded-lg hover:bg-white/5 transition-colors flex-shrink-0"
-                style={{ color: copied ? "#4ADE80" : "#F5F5F580" }}
-                title="Copiar token">
-                {copied ? <CheckCircle size={13}/> : <Copy size={13}/>}
-              </button>
-            </div>
-            {revealed && (
-              <p className="text-[9px] text-[#EF4444]/60 mt-1 flex items-center gap-1">
-                <AlertCircle size={9}/> Token visível — não compartilhe esta tela
-              </p>
-            )}
-          </div>
-
-          {/* Metadata grid */}
-          {cred.metadata && Object.keys(cred.metadata).length > 0 && (
-            <div>
-              <p className="text-[9px] text-[#F5F5F5]/25 uppercase tracking-wider mb-2 flex items-center gap-1">
-                <Hash size={9}/> Metadados
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
-                {Object.entries(cred.metadata).map(([k, v]) => (
-                  <div key={k} className="flex gap-2 items-start">
-                    <span className="text-[10px] text-[#F5F5F5]/25 w-28 flex-shrink-0">{k}</span>
-                    <span className="text-[10px] text-[#F5F5F5]/65 font-mono break-all">{v}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Tags + generated at */}
-          <div className="flex items-center gap-3 flex-wrap border-t border-white/5 pt-3">
-            <div className="flex flex-wrap gap-1">
-              {cred.tags.map(t => (
-                <span key={t} className="text-[9px] px-1.5 py-0.5 rounded-full bg-white/5 text-[#F5F5F5]/30">
-                  #{t}
-                </span>
-              ))}
-            </div>
-            <span className="ml-auto text-[9px] text-[#F5F5F5]/20 flex items-center gap-1">
-              <RefreshCw size={8}/> Gerado em {cred.generatedAt}
-            </span>
-          </div>
-
-          {/* Notes */}
-          {cred.notes && (
-            <div className="p-3 bg-[#C9A84C]/5 border border-[#C9A84C]/10 rounded-xl">
-              <p className="text-[10px] text-[#C9A84C]/60">💡 {cred.notes}</p>
-            </div>
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// PASSWORD GATE
+// ═══════════════════════════════════════════════════════════════════════
+
+function PasswordGate({ onAuth }: { onAuth: (creds: CredRecord[]) => void }) {
+  const [pw, setPw]           = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError]     = useState("");
+  const [show, setShow]       = useState(false);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+    try {
+      const res  = await fetch("/api/credentials", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: pw }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "Erro desconhecido");
+      } else {
+        onAuth(data.credentials);
+      }
+    } catch {
+      setError("Falha na conexão");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="flex-1 min-h-screen flex items-center justify-center p-6"
+      style={{ background: "#08080f" }}>
+      <div className="w-full max-w-md">
+        {/* Logo */}
+        <div className="flex flex-col items-center mb-8">
+          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4"
+            style={{ background:"#C9A84C18", border:"1px solid #C9A84C30" }}>
+            <Shield size={28} className="text-[#C9A84C]"/>
+          </div>
+          <h1 className="text-xl font-bold text-[#F5F5F5]">Área Restrita</h1>
+          <p className="text-[#F5F5F5]/40 text-sm mt-1">Credenciais & Tokens — Panteão do Olimpo</p>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={submit} className="bg-[#0D0D0D] border border-white/8 rounded-2xl p-6 space-y-4">
+          <div>
+            <label className="text-[10px] text-[#F5F5F5]/40 uppercase tracking-wider mb-2 block">
+              Senha de acesso
+            </label>
+            <div className="relative">
+              <input
+                type={show ? "text" : "password"}
+                value={pw}
+                onChange={e => setPw(e.target.value)}
+                placeholder="••••••••••"
+                autoFocus
+                className="w-full bg-[#080808] border border-white/8 rounded-xl px-4 py-3 text-sm text-[#F5F5F5] focus:outline-none focus:border-[#C9A84C]/40 transition-colors pr-10"
+              />
+              <button type="button" onClick={() => setShow(s => !s)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#F5F5F5]/25 hover:text-[#F5F5F5]/60 transition-colors">
+                {show ? <EyeOff size={14}/> : <Eye size={14}/>}
+              </button>
+            </div>
+          </div>
+
+          {error && (
+            <div className="flex items-center gap-2 text-[#EF4444] text-xs">
+              <AlertCircle size={12}/> {error}
+            </div>
+          )}
+
+          <button type="submit" disabled={loading || !pw}
+            className="w-full py-3 rounded-xl font-semibold text-sm transition-all disabled:opacity-40"
+            style={{ background: "#C9A84C", color:"#08080f" }}>
+            {loading ? "Verificando..." : "Acessar"}
+          </button>
+        </form>
+
+        <p className="text-center text-[10px] text-[#F5F5F5]/15 mt-4">
+          Acesso restrito ao Yuri e agentes autorizados
+        </p>
+      </div>
     </div>
   );
 }
@@ -306,120 +256,121 @@ function CredentialCard({ cred }: { cred: Credential }) {
 // ═══════════════════════════════════════════════════════════════════════
 
 export default function CredentialsPage() {
-  const [filter, setFilter] = useState<CredStatus | "">("");
+  const [creds, setCreds]   = useState<CredRecord[] | null>(null);
   const [search, setSearch] = useState("");
+  const [filterTag, setFilterTag] = useState("");
 
-  const shown = CREDENTIALS.filter(c => {
-    if (filter && c.status !== filter) return false;
+  const handleAuth = useCallback((data: CredRecord[]) => setCreds(data), []);
+
+  if (!creds) return <PasswordGate onAuth={handleAuth}/>;
+
+  // All tags
+  const allTags = Array.from(new Set(creds.flatMap(c => c.tags ?? []))).sort();
+
+  const shown = creds.filter(c => {
+    if (filterTag && !(c.tags ?? []).includes(filterTag)) return false;
     if (search) {
       const q = search.toLowerCase();
-      return (
-        c.service.toLowerCase().includes(q) ||
-        c.account.toLowerCase().includes(q) ||
-        c.tags.some(t => t.includes(q))
-      );
+      return c.title.toLowerCase().includes(q) || c.code.toLowerCase().includes(q) ||
+             (c.tags ?? []).some(t => t.includes(q));
     }
     return true;
   });
 
-  const activeCount    = CREDENTIALS.filter(c => c.status === "ativo" || c.status === "nao-expira").length;
-  const expiredCount   = CREDENTIALS.filter(c => c.status === "expirado").length;
-  const pendingCount   = CREDENTIALS.filter(c => c.status === "pendente").length;
+  // Group by importance
+  const critical = shown.filter(c => c.importance === "crítico");
+  const high     = shown.filter(c => c.importance === "alto");
+  const rest     = shown.filter(c => c.importance !== "crítico" && c.importance !== "alto");
+
+  function Group({ title, items, color }: { title:string; items:CredRecord[]; color:string }) {
+    if (!items.length) return null;
+    return (
+      <div className="mb-6">
+        <div className="flex items-center gap-2 mb-3">
+          <div className="w-2 h-2 rounded-full" style={{ background:color }}/>
+          <span className="text-xs font-semibold" style={{ color }}>{title}</span>
+          <span className="text-[10px] text-[#F5F5F5]/20">({items.length})</span>
+          <div className="flex-1 h-px" style={{ background:`${color}20` }}/>
+        </div>
+        <div className="space-y-2">
+          {items.map(c => <CredCard key={c.code} rec={c}/>)}
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="flex-1 min-h-screen p-6" style={{ background: "#08080f" }}>
+    <div className="flex-1 min-h-screen p-6" style={{ background:"#08080f" }}>
       <div className="max-w-4xl mx-auto">
 
-        {/* ── Header ── */}
+        {/* Header */}
         <div className="flex items-start justify-between gap-4 mb-6 flex-wrap">
           <div>
             <div className="flex items-center gap-2 mb-1">
               <Shield size={18} className="text-[#C9A84C]"/>
               <h1 className="text-xl font-bold text-[#F5F5F5]">Credenciais & Tokens</h1>
+              <span className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-[#4ADE80]/10 border border-[#4ADE80]/20 text-[#4ADE80]">
+                <Lock size={9}/> Autenticado
+              </span>
             </div>
             <p className="text-sm text-[#F5F5F5]/40">
-              {activeCount} ativas · {expiredCount} expiradas · {pendingCount} pendentes
+              {creds.length} credenciais · {critical.length} críticas
             </p>
           </div>
+          <button onClick={() => setCreds(null)}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-[#F5F5F5]/30 hover:text-[#EF4444] border border-white/8 rounded-lg transition-colors">
+            <LogOut size={12}/> Sair
+          </button>
         </div>
 
-        {/* ── Aviso de segurança ── */}
-        <div className="flex items-start gap-3 p-4 mb-6 bg-[#EF4444]/8 border border-[#EF4444]/20 rounded-xl">
-          <AlertCircle size={14} className="text-[#EF4444] flex-shrink-0 mt-0.5"/>
-          <p className="text-xs text-[#F5F5F5]/50">
-            <strong className="text-[#EF4444]">Atenção:</strong> Tokens são ofuscados por padrão.
-            Use "Revelar" apenas quando necessário e nunca compartilhe telas com tokens visíveis.
-            Tokens completos estão armazenados de forma segura no Supabase Knowledge Base (KNW-030).
+        {/* Security notice */}
+        <div className="flex items-start gap-2 p-3 mb-5 bg-[#F59E0B]/8 border border-[#F59E0B]/20 rounded-xl">
+          <AlertCircle size={13} className="text-[#F59E0B] flex-shrink-0 mt-0.5"/>
+          <p className="text-[10px] text-[#F5F5F5]/45">
+            Tokens sensíveis exibidos ofuscados por padrão. Use 👁 para revelar e 📋 para copiar.
+            Nunca compartilhe screenshots com tokens visíveis.
           </p>
         </div>
 
-        {/* ── Token renovado — destaque ── */}
-        <div className="flex items-start gap-3 p-4 mb-6 bg-[#4ADE80]/8 border border-[#4ADE80]/25 rounded-xl">
-          <CheckCircle size={14} className="text-[#4ADE80] flex-shrink-0 mt-0.5"/>
-          <div>
-            <p className="text-sm font-semibold text-[#4ADE80]">✅ Token Instagram renovado — 17/03/2026</p>
-            <p className="text-xs text-[#F5F5F5]/40 mt-0.5">
-              Novo Page Access Token para <strong className="text-[#C9A84C]">@panteao_digital</strong> gerado com sucesso.
-              Tipo: <strong className="text-[#F5F5F5]/70">não expira</strong>.
-              Posts agendados (POST-006 em diante) podem ser publicados normalmente.
-            </p>
-          </div>
-        </div>
-
-        {/* ── Stats ── */}
-        <div className="grid grid-cols-3 gap-3 mb-6">
-          {[
-            { label: "Ativas",   value: activeCount,  color: "#4ADE80" },
-            { label: "Expiradas",value: expiredCount, color: "#EF4444" },
-            { label: "Total",    value: CREDENTIALS.length, color: "#C9A84C" },
-          ].map(s => (
-            <div key={s.label} className="bg-[#0D0D0D] border border-white/5 rounded-xl p-3 text-center">
-              <p className="text-xl font-bold" style={{ color: s.color }}>{s.value}</p>
-              <p className="text-[10px] text-[#F5F5F5]/30 mt-0.5">{s.label}</p>
-            </div>
-          ))}
-        </div>
-
-        {/* ── Filters ── */}
+        {/* Filters */}
         <div className="flex items-center gap-2 mb-5 flex-wrap">
-          <input
-            value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="Buscar serviço, conta, tag..."
-            className="bg-[#0D0D0D] border border-white/8 rounded-lg px-3 py-1.5 text-xs text-[#F5F5F5]/60 focus:outline-none focus:border-[#C9A84C]/30 transition-colors w-52"
-          />
-          {(["","ativo","nao-expira","expirado","pendente"] as const).map(s => (
-            <button key={s} onClick={() => setFilter(s)}
-              className={`px-3 py-1.5 rounded-lg text-[10px] font-medium transition-colors ${
-                filter === s
-                  ? "bg-[#C9A84C]/15 border border-[#C9A84C]/30 text-[#C9A84C]"
-                  : "bg-[#0D0D0D] border border-white/8 text-[#F5F5F5]/40 hover:text-[#F5F5F5]/70"
-              }`}>
-              {s === "" ? "Todas" : STATUS_CFG[s].label}
-            </button>
-          ))}
-          <span className="ml-auto text-xs text-[#F5F5F5]/20">{shown.length} credencial{shown.length !== 1 ? "is" : ""}</span>
+          <div className="relative">
+            <Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#F5F5F5]/25"/>
+            <input value={search} onChange={e => setSearch(e.target.value)}
+              placeholder="Buscar..."
+              className="bg-[#0D0D0D] border border-white/8 rounded-lg pl-8 pr-3 py-1.5 text-xs text-[#F5F5F5]/60 focus:outline-none focus:border-[#C9A84C]/30 w-44 transition-colors"
+            />
+          </div>
+          <div className="flex items-center gap-1 flex-wrap">
+            <Tag size={10} className="text-[#F5F5F5]/20"/>
+            {["", ...allTags.slice(0,8)].map(t => (
+              <button key={t} onClick={() => setFilterTag(t)}
+                className={`px-2 py-1 rounded-lg text-[9px] transition-colors ${
+                  filterTag === t
+                    ? "bg-[#C9A84C]/15 border border-[#C9A84C]/30 text-[#C9A84C]"
+                    : "text-[#F5F5F5]/25 hover:text-[#F5F5F5]/50"
+                }`}>
+                {t === "" ? "Todas" : `#${t}`}
+              </button>
+            ))}
+          </div>
+          <span className="ml-auto text-[10px] text-[#F5F5F5]/20">{shown.length} result</span>
         </div>
 
-        {/* ── Cards ── */}
-        <div className="space-y-3">
-          {shown.map(cred => (
-            <CredentialCard key={cred.id} cred={cred}/>
-          ))}
-          {shown.length === 0 && (
-            <div className="text-center py-12 text-[#F5F5F5]/20 text-sm">
-              Nenhuma credencial encontrada.
-            </div>
-          )}
-        </div>
+        {/* Groups */}
+        <Group title="Críticas"  items={critical} color="#EF4444"/>
+        <Group title="Alta"      items={high}     color="#F59E0B"/>
+        <Group title="Normal"    items={rest}     color="#4ADE80"/>
 
-        {/* Footer */}
-        <div className="mt-8 p-4 bg-[#0D0D0D] border border-white/5 rounded-xl">
-          <p className="text-[10px] text-[#F5F5F5]/20 text-center">
-            Credenciais completas armazenadas no Supabase Knowledge Base · KNW-022 a KNW-030 ·
-            Para adicionar nova credencial, acionar Hefesto via Telegram.
-          </p>
-        </div>
+        {shown.length === 0 && (
+          <div className="text-center py-12 text-[#F5F5F5]/20 text-sm">
+            Nenhuma credencial encontrada.
+          </div>
+        )}
 
+        <p className="text-center text-[9px] text-[#F5F5F5]/12 mt-8">
+          Fonte: Supabase Knowledge Base · Atualizado via Hefesto · Para adicionar credencial, enviar ao grupo Tech & Build
+        </p>
       </div>
     </div>
   );
