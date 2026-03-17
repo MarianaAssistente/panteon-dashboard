@@ -108,39 +108,72 @@ const ITEMS: ContentItem[] = [
     tags:["carrossel","lancamento","ebook"],
   },
 
-  // ── Stories @panteao_digital ──────────────────────────────────────────
+  // ── Stories @panteao_digital — STR-001..008 semana 17-23/03 ──────────
   {
-    id:"s1", titulo:"Story — Teaser Mariana CEO",
-    conteudo:"Em criação por Afrodite. Story de bastidores da gravação do post da Mariana.",
+    id:"str001", titulo:"STR-001 — Teaser Mariana CEO",
+    conteudo:"Teaser do post da Mariana CEO. Publicar assim que token for renovado.",
     account:"@panteao_digital", type:"Story",
-    date:"2026-03-17", time:"07:30",
-    status:"Rascunho", criticality:"Rotineiro", pipeline:"Conteúdo",
-    tags:["afrodite","em-criacao"],
+    date:"2026-03-17", time:"09:00",
+    status:"Pendente Aprovação", criticality:"Rotineiro", pipeline:"Agendado",
+    tags:["teaser","mariana","token-pendente"],
   },
   {
-    id:"s2", titulo:"Story — Poll: IA no seu negócio?",
-    conteudo:"Em criação por Afrodite. Enquete de engajamento.",
+    id:"str002", titulo:"STR-002 — Poll: Você usa IA?",
+    conteudo:"Enquete de engajamento: você já usa IA no seu negócio?",
     account:"@panteao_digital", type:"Story",
     date:"2026-03-17", time:"21:00",
-    status:"Rascunho", criticality:"Rotineiro", pipeline:"Roteiro",
-    tags:["afrodite","em-criacao"],
+    status:"Agendado", criticality:"Rotineiro", pipeline:"Agendado",
+    tags:["poll","engajamento"],
   },
   {
-    id:"s3", titulo:"Story — Quiz: qual agente é você?",
-    conteudo:"Em criação por Afrodite.",
+    id:"str003", titulo:"STR-003 — Bastidor Atena",
+    conteudo:"Bastidores da Atena CSO em ação — print de estratégia sendo formulada.",
     account:"@panteao_digital", type:"Story",
-    date:"2026-03-18", time:"19:00",
-    status:"Rascunho", criticality:"Rotineiro", pipeline:"Roteiro",
-    tags:["afrodite","em-criacao"],
+    date:"2026-03-18", time:"07:30",
+    status:"Agendado", criticality:"Rotineiro", pipeline:"Agendado",
+    tags:["bastidor","atena"],
   },
   {
-    id:"s4", titulo:"Story — Teaser Atena CSO",
-    conteudo:"Em criação por Afrodite.",
+    id:"str004", titulo:"STR-004 — Countdown 7 dias",
+    conteudo:"Contagem regressiva: 7 dias para o lançamento do e-book.",
     account:"@panteao_digital", type:"Story",
-    date:"2026-03-18", time:"22:00",
-    status:"Rascunho", criticality:"Rotineiro", pipeline:"Roteiro",
-    tags:["afrodite","em-criacao"],
+    date:"2026-03-18", time:"21:00",
+    status:"Agendado", criticality:"Moderado", pipeline:"Agendado",
+    tags:["countdown","lancamento"],
   },
+  {
+    id:"str005", titulo:"STR-005 — Dica IA",
+    conteudo:"Dica rápida de IA para o dia — formato vertical, fundo preto, texto dourado.",
+    account:"@panteao_digital", type:"Story",
+    date:"2026-03-19", time:"07:30",
+    status:"Agendado", criticality:"Rotineiro", pipeline:"Agendado",
+    tags:["dica","ia","educativo"],
+  },
+  {
+    id:"str006", titulo:"STR-006 — Poll: Qual agente é você?",
+    conteudo:"Poll interativo: com qual agente do Panteão você mais se identifica?",
+    account:"@panteao_digital", type:"Story",
+    date:"2026-03-19", time:"21:00",
+    status:"Agendado", criticality:"Rotineiro", pipeline:"Agendado",
+    tags:["poll","agentes","engajamento"],
+  },
+  {
+    id:"str007", titulo:"STR-007 — Bastidor Hefesto",
+    conteudo:"Bastidores do Hefesto CTO — print de código sendo gerado, infra rodando.",
+    account:"@panteao_digital", type:"Story",
+    date:"2026-03-20", time:"07:30",
+    status:"Agendado", criticality:"Rotineiro", pipeline:"Agendado",
+    tags:["bastidor","hefesto","cto"],
+  },
+  {
+    id:"str008", titulo:"STR-008 — Countdown 5 dias",
+    conteudo:"Contagem regressiva: 5 dias para o lançamento. Urgência crescendo.",
+    account:"@panteao_digital", type:"Story",
+    date:"2026-03-20", time:"21:00",
+    status:"Agendado", criticality:"Moderado", pipeline:"Agendado",
+    tags:["countdown","lancamento"],
+  },
+  // Stories semana 2 (placeholders Afrodite)
   {
     id:"s5", titulo:"Story — Bastidores e-book (pág. 1)",
     conteudo:"Em criação por Afrodite.",
@@ -158,7 +191,7 @@ const ITEMS: ContentItem[] = [
     tags:["afrodite","em-criacao"],
   },
   {
-    id:"s7", titulo:"Story — Countdown 24h — amanhã é o dia",
+    id:"s7", titulo:"Story — Countdown 24h",
     conteudo:"Em criação por Afrodite.",
     account:"@panteao_digital", type:"Story",
     date:"2026-03-24", time:"20:00",
@@ -166,7 +199,7 @@ const ITEMS: ContentItem[] = [
     tags:["afrodite","em-criacao"],
   },
   {
-    id:"s8", titulo:"Story — 🚀 AO VIVO — Lançamento e-book",
+    id:"s8", titulo:"Story — 🚀 AO VIVO — Lançamento",
     conteudo:"Em criação por Afrodite.",
     account:"@panteao_digital", type:"Story",
     date:"2026-03-25", time:"09:00",
@@ -774,6 +807,9 @@ export default function AgendaPage() {
           )}
         </div>
 
+        {/* ══ FORMATO MODELO ══ */}
+        <FormatoModeloSection/>
+
         {/* ══ TOKEN EXPIRADO — ALERTA URGENTE ══ */}
         <div className="mt-6 flex items-start gap-3 p-4 bg-[#EF4444]/10 border-2 border-[#EF4444]/40 rounded-xl animate-pulse">
           <AlertCircle size={18} className="text-[#EF4444] flex-shrink-0 mt-0.5"/>
@@ -825,6 +861,206 @@ export default function AgendaPage() {
         <p className="text-center text-[10px] text-[#F5F5F5]/15 mt-8">
           Agenda atualizada manualmente · Para integrar com Google Calendar, acionar Hera
         </p>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// FORMATO MODELO — POSTS & STORIES
+// ═══════════════════════════════════════════════════════════════════════
+
+function FormatoModeloSection() {
+  const [tab, setTab] = useState<"post"|"story">("post");
+
+  return (
+    <div className="mt-6 bg-[#0D0D0D] border border-[#C9A84C]/12 rounded-2xl overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center gap-3 px-5 py-4 border-b border-white/5">
+        <span className="text-base">🎨</span>
+        <span className="text-sm font-bold text-[#F5F5F5]">Formato Modelo — @panteao_digital</span>
+        <div className="ml-auto flex gap-1">
+          {(["post","story"] as const).map(t => (
+            <button key={t} onClick={() => setTab(t)}
+              className={`px-3 py-1 rounded-lg text-[10px] font-semibold transition-colors ${
+                tab === t
+                  ? "bg-[#C9A84C]/15 border border-[#C9A84C]/30 text-[#C9A84C]"
+                  : "text-[#F5F5F5]/30 hover:text-[#F5F5F5]/60"
+              }`}>
+              {t === "post" ? "📸 Feed Post" : "◎ Story"}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="p-5">
+        {tab === "post" ? <FormatoPost/> : <FormatoStory/>}
+      </div>
+    </div>
+  );
+}
+
+function FormatoPost() {
+  return (
+    <div className="flex flex-col md:flex-row gap-6 items-start">
+      {/* Preview mockup */}
+      <div className="flex-shrink-0">
+        <p className="text-[9px] text-[#F5F5F5]/25 uppercase tracking-wider mb-2 text-center">Preview · 1080×1350px (4:5)</p>
+        {/* 4:5 scaled mockup */}
+        <div
+          className="relative rounded-xl overflow-hidden shadow-2xl"
+          style={{
+            width: 200, height: 250,
+            background: "#0a0a0f",
+            border: "1px solid #C9A84C30",
+          }}
+        >
+          {/* Top logo area */}
+          <div className="absolute top-4 left-0 right-0 flex flex-col items-center gap-1">
+            <div className="flex items-center gap-1">
+              <span style={{ color:"#C9A84C", fontSize:14 }}>👑</span>
+              <span style={{ color:"#C9A84C", fontSize:14 }}>⚡</span>
+            </div>
+            <p style={{ fontFamily:"serif", color:"#C9A84C", fontSize:7, letterSpacing:"0.15em", textTransform:"uppercase" }}>
+              PANTEÃO DIGITAL
+            </p>
+          </div>
+          {/* Content area */}
+          <div className="absolute inset-0 flex flex-col items-center justify-center px-5">
+            <p style={{ fontFamily:"serif", color:"#C9A84C", fontSize:13, fontWeight:700, textAlign:"center", lineHeight:1.3 }}>
+              Título do Post
+            </p>
+            <p style={{ color:"#F5F5F5CC", fontSize:7.5, textAlign:"center", marginTop:8, lineHeight:1.5 }}>
+              Corpo do texto em Inter,<br/>branco sobre fundo preto.
+            </p>
+          </div>
+          {/* Pagination dots */}
+          <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-1">
+            {[0,1,2,3,4].map(i => (
+              <div key={i} className="rounded-full"
+                style={{ width:4, height:4, backgroundColor: i===0?"#C9A84C":"#C9A84C40" }}/>
+            ))}
+          </div>
+          {/* Subtle gold vignette top */}
+          <div className="absolute inset-0 rounded-xl pointer-events-none"
+            style={{ background:"radial-gradient(ellipse at 50% 0%, #C9A84C08 0%, transparent 60%)" }}/>
+        </div>
+      </div>
+
+      {/* Specs */}
+      <div className="flex-1 space-y-3">
+        <p className="text-[10px] text-[#F5F5F5]/25 uppercase tracking-wider font-semibold">Especificações Aprovadas</p>
+
+        {[
+          { label:"Dimensões",   value:"1080 × 1350 px (proporção 4:5)" },
+          { label:"Fundo",       value:"#0a0a0f — preto profundo" },
+          { label:"Logo",        value:"👑⚡ Coroa + raio — canto superior centralizado" },
+          { label:"Fonte título",value:"Playfair Display — dourado #d4af37, bold" },
+          { label:"Fonte corpo", value:"Inter — branco #FFFFFF, regular" },
+          { label:"Dots paginação", value:"Dourado #C9A84C — base centralizada" },
+          { label:"Brilho",      value:"Vignette dourada sutil no topo (radial-gradient)" },
+          { label:"Aprovado por",value:"Yuri Moraes — 17/03/2026" },
+        ].map(s => (
+          <div key={s.label} className="flex gap-3">
+            <span className="text-[10px] text-[#F5F5F5]/30 w-32 flex-shrink-0">{s.label}</span>
+            <span className="text-[10px] text-[#F5F5F5]/70">{s.value}</span>
+          </div>
+        ))}
+
+        <div className="mt-4 p-3 bg-[#C9A84C]/5 border border-[#C9A84C]/15 rounded-xl">
+          <p className="text-[10px] text-[#C9A84C]/70">
+            💡 Este é o template de referência para todos os agentes criarem conteúdo consistente.
+            Qualquer variação de formato deve ser aprovada pelo Yuri antes de aplicar.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FormatoStory() {
+  return (
+    <div className="flex flex-col md:flex-row gap-6 items-start">
+      {/* Preview mockup */}
+      <div className="flex-shrink-0">
+        <p className="text-[9px] text-[#F5F5F5]/25 uppercase tracking-wider mb-2 text-center">Preview · 1080×1920px (9:16)</p>
+        {/* 9:16 scaled mockup */}
+        <div
+          className="relative rounded-xl overflow-hidden shadow-2xl"
+          style={{
+            width: 120, height: 213,
+            background: "radial-gradient(ellipse at 50% 10%, #C9A84C12 0%, #0a0a0f 50%)",
+            border: "1px solid #C9A84C30",
+          }}
+        >
+          {/* Logo area — top 1/3 */}
+          <div className="absolute top-4 left-0 right-0 flex flex-col items-center gap-1">
+            {/* Logo circle */}
+            <div className="w-14 h-14 rounded-full flex items-center justify-center"
+              style={{ border:"1.5px solid #C9A84C50", background:"#C9A84C08" }}>
+              <div className="flex gap-0.5">
+                <span style={{ color:"#C9A84C", fontSize:16 }}>👑</span>
+              </div>
+            </div>
+            <p style={{ fontFamily:"serif", color:"#C9A84C", fontSize:5.5, letterSpacing:"0.12em", textTransform:"uppercase", marginTop:2 }}>
+              PANTEÃO DIGITAL
+            </p>
+          </div>
+          {/* Foto circular (quando aplicável) */}
+          <div className="absolute left-0 right-0 flex justify-center" style={{ top:80 }}>
+            <div className="w-10 h-10 rounded-full flex items-center justify-center text-base"
+              style={{ border:"1.5px solid #C9A84C", background:"#111" }}>
+              👤
+            </div>
+          </div>
+          {/* Título e tagline */}
+          <div className="absolute left-0 right-0 px-3 text-center" style={{ top:136 }}>
+            <p style={{ fontFamily:"serif", color:"#C9A84C", fontSize:8, fontWeight:700, lineHeight:1.3 }}>
+              Mariana
+            </p>
+            <p style={{ fontFamily:"serif", color:"#C9A84C99", fontSize:6, fontStyle:"italic", marginTop:2, lineHeight:1.4 }}>
+              "Fundadora do Panteão"
+            </p>
+          </div>
+          {/* Tagline base */}
+          <div className="absolute bottom-4 left-0 right-0 px-3 text-center">
+            <p style={{ color:"#F5F5F5CC", fontSize:5.5, lineHeight:1.5 }}>
+              Construindo o futuro<br/>com Inteligência Artificial
+            </p>
+          </div>
+          {/* Gold radial top */}
+          <div className="absolute inset-0 pointer-events-none rounded-xl"
+            style={{ background:"radial-gradient(ellipse at 50% 0%, #C9A84C15 0%, transparent 55%)" }}/>
+        </div>
+      </div>
+
+      {/* Specs */}
+      <div className="flex-1 space-y-3">
+        <p className="text-[10px] text-[#F5F5F5]/25 uppercase tracking-wider font-semibold">Especificações Aprovadas</p>
+
+        {[
+          { label:"Dimensões",     value:"1080 × 1920 px (proporção 9:16)" },
+          { label:"Fundo",         value:"#0a0a0f + brilho dourado radial no topo" },
+          { label:"Logo",          value:"👑 Coroa — 280px — centralizada no topo" },
+          { label:"Fonte título",  value:"Playfair Display — dourado #d4af37, bold" },
+          { label:"Tagline",       value:"Playfair Display itálico — dourado" },
+          { label:"Foto (quando aplicável)", value:"Circular com borda dourada #C9A84C" },
+          { label:"Fonte corpo",   value:"Inter — branco #FFFFFF" },
+          { label:"Safe zone",     value:"80px topo/base — sem texto nessas áreas" },
+          { label:"Aprovado por",  value:"Yuri Moraes — 17/03/2026" },
+        ].map(s => (
+          <div key={s.label} className="flex gap-3">
+            <span className="text-[10px] text-[#F5F5F5]/30 w-36 flex-shrink-0">{s.label}</span>
+            <span className="text-[10px] text-[#F5F5F5]/70">{s.value}</span>
+          </div>
+        ))}
+
+        <div className="mt-4 p-3 bg-[#06B6D4]/5 border border-[#06B6D4]/15 rounded-xl">
+          <p className="text-[10px] text-[#06B6D4]/70">
+            💡 Stories: sempre manter safe zone de 80px no topo e base (área do perfil/interações do IG).
+            Foto circular somente quando há apresentação de agente/pessoa.
+          </p>
+        </div>
       </div>
     </div>
   );
