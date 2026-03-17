@@ -52,7 +52,7 @@ const ITEMS: ContentItem[] = [
     tags:["apresentacao","ceo","mariana"],
   },
   {
-    id:"p4", titulo:"Post 4 — Atena CSO",
+    id:"p4", titulo:"POST-004 — Atena CSO",
     conteudo:"Apresentação da Atena, Chief Strategy Officer. Estratégia feita por IA.",
     account:"@panteao_digital", type:"Feed Post",
     date:"2026-03-18", time:"12:00",
@@ -60,7 +60,7 @@ const ITEMS: ContentItem[] = [
     tags:["apresentacao","cso","atena"],
   },
   {
-    id:"p5", titulo:"Post 5 — Hefesto CTO",
+    id:"p5", titulo:"POST-005 — Hefesto CTO",
     conteudo:"Apresentação do Hefesto, Chief Technology Officer. Quem constrói a infra.",
     account:"@panteao_digital", type:"Feed Post",
     date:"2026-03-19", time:"09:00",
@@ -68,96 +68,110 @@ const ITEMS: ContentItem[] = [
     tags:["apresentacao","cto","hefesto"],
   },
   {
-    id:"p6", titulo:"Post 6 — Carrossel 8 Agentes",
-    conteudo:"Carrossel apresentando os 8 agentes. Logo sendo refeita — aguardando aprovação.",
+    id:"p6", titulo:"POST-006 — Carrossel 6 slides",
+    conteudo:"Carrossel 6 slides apresentando os agentes do Panteão Digital.",
     account:"@panteao_digital", type:"Feed Post",
     date:"2026-03-20", time:"11:00",
-    status:"Pendente Aprovação", criticality:"Rotineiro", pipeline:"Aprovação",
-    tags:["carrossel","agentes","logo"],
+    status:"Agendado", criticality:"Rotineiro", pipeline:"Agendado",
+    tags:["carrossel","agentes"],
   },
   {
-    id:"p7", titulo:"Post 7 — Chat Bastidores",
+    id:"p7", titulo:"POST-007 — Chat IA",
     conteudo:"Post mostrando conversa real com agente — bastidores do Panteão em ação.",
     account:"@panteao_digital", type:"Feed Post",
     date:"2026-03-22", time:"21:00",
-    status:"Pendente Aprovação", criticality:"Rotineiro", pipeline:"Conteúdo",
+    status:"Agendado", criticality:"Rotineiro", pipeline:"Agendado",
     tags:["bastidores","chat","ia"],
   },
   {
-    id:"p8", titulo:"Post 8 — E-book Teaser",
+    id:"p8", titulo:"POST-008 — E-book Panteão",
     conteudo:"Teaser do e-book 'Construindo seu Panteão Digital'. Abertura da lista de espera.",
     account:"@panteao_digital", type:"Feed Post",
     date:"2026-03-24", time:"19:00",
-    status:"Pendente Aprovação", criticality:"Moderado", pipeline:"Copywriting",
+    status:"Agendado", criticality:"Moderado", pipeline:"Agendado",
     tags:["ebook","lancamento","teaser"],
   },
   {
-    id:"p9", titulo:"Post 9 — Countdown Dia D",
+    id:"p9", titulo:"POST-009 — Countdown Lançamento 🔴",
     conteudo:"Post de countdown para o lançamento do e-book às 25/03. Máxima urgência.",
     account:"@panteao_digital", type:"Feed Post",
     date:"2026-03-25", time:"09:00",
-    status:"Pendente Aprovação", criticality:"Crítico", pipeline:"Roteiro",
+    status:"Agendado", criticality:"Crítico", pipeline:"Agendado",
     tags:["countdown","lancamento","ebook"],
   },
   {
-    id:"p10", titulo:"Post 10 — Carrossel Lançamento (10 slides)",
+    id:"p10", titulo:"POST-010 — Carrossel 10 slides 🔴",
     conteudo:"Carrossel de 10 slides anunciando o lançamento oficial do e-book Panteão Digital.",
     account:"@panteao_digital", type:"Feed Post",
     date:"2026-03-25", time:"12:00",
-    status:"Pendente Aprovação", criticality:"Crítico", pipeline:"Roteiro",
+    status:"Agendado", criticality:"Crítico", pipeline:"Agendado",
     tags:["carrossel","lancamento","ebook"],
   },
 
   // ── Stories @panteao_digital ──────────────────────────────────────────
   {
     id:"s1", titulo:"Story — Teaser Mariana CEO",
-    conteudo:"Story de bastidores da gravação do post da Mariana.",
+    conteudo:"Em criação por Afrodite. Story de bastidores da gravação do post da Mariana.",
     account:"@panteao_digital", type:"Story",
     date:"2026-03-17", time:"07:30",
-    status:"Pendente Aprovação", criticality:"Rotineiro", pipeline:"Conteúdo",
+    status:"Rascunho", criticality:"Rotineiro", pipeline:"Conteúdo",
+    tags:["afrodite","em-criacao"],
   },
   {
     id:"s2", titulo:"Story — Poll: IA no seu negócio?",
-    conteudo:"Enquete de engajamento: você usa IA no trabalho?",
+    conteudo:"Em criação por Afrodite. Enquete de engajamento.",
     account:"@panteao_digital", type:"Story",
     date:"2026-03-17", time:"21:00",
-    status:"Pendente Aprovação", criticality:"Rotineiro", pipeline:"Roteiro",
+    status:"Rascunho", criticality:"Rotineiro", pipeline:"Roteiro",
+    tags:["afrodite","em-criacao"],
   },
   {
     id:"s3", titulo:"Story — Quiz: qual agente é você?",
+    conteudo:"Em criação por Afrodite.",
     account:"@panteao_digital", type:"Story",
     date:"2026-03-18", time:"19:00",
     status:"Rascunho", criticality:"Rotineiro", pipeline:"Roteiro",
+    tags:["afrodite","em-criacao"],
   },
   {
     id:"s4", titulo:"Story — Teaser Atena CSO",
+    conteudo:"Em criação por Afrodite.",
     account:"@panteao_digital", type:"Story",
     date:"2026-03-18", time:"22:00",
     status:"Rascunho", criticality:"Rotineiro", pipeline:"Roteiro",
+    tags:["afrodite","em-criacao"],
   },
   {
     id:"s5", titulo:"Story — Bastidores e-book (pág. 1)",
+    conteudo:"Em criação por Afrodite.",
     account:"@panteao_digital", type:"Story",
     date:"2026-03-21", time:"19:00",
     status:"Rascunho", criticality:"Rotineiro", pipeline:"Roteiro",
+    tags:["afrodite","em-criacao"],
   },
   {
     id:"s6", titulo:"Story — Contagem regressiva 4 dias",
+    conteudo:"Em criação por Afrodite.",
     account:"@panteao_digital", type:"Story",
     date:"2026-03-21", time:"21:30",
     status:"Rascunho", criticality:"Moderado", pipeline:"Roteiro",
+    tags:["afrodite","em-criacao"],
   },
   {
     id:"s7", titulo:"Story — Countdown 24h — amanhã é o dia",
+    conteudo:"Em criação por Afrodite.",
     account:"@panteao_digital", type:"Story",
     date:"2026-03-24", time:"20:00",
     status:"Rascunho", criticality:"Crítico", pipeline:"Roteiro",
+    tags:["afrodite","em-criacao"],
   },
   {
     id:"s8", titulo:"Story — 🚀 AO VIVO — Lançamento e-book",
+    conteudo:"Em criação por Afrodite.",
     account:"@panteao_digital", type:"Story",
     date:"2026-03-25", time:"09:00",
     status:"Rascunho", criticality:"Crítico", pipeline:"Roteiro",
+    tags:["afrodite","em-criacao"],
   },
 
   // ── Reunião recorrente ────────────────────────────────────────────────
@@ -760,10 +774,31 @@ export default function AgendaPage() {
           )}
         </div>
 
+        {/* ══ TOKEN EXPIRADO — ALERTA URGENTE ══ */}
+        <div className="mt-6 flex items-start gap-3 p-4 bg-[#EF4444]/10 border-2 border-[#EF4444]/40 rounded-xl animate-pulse">
+          <AlertCircle size={18} className="text-[#EF4444] flex-shrink-0 mt-0.5"/>
+          <div className="flex-1">
+            <p className="text-sm font-bold text-[#EF4444]">🚨 TOKEN INSTAGRAM EXPIRADO — Ação necessária antes de 20/03</p>
+            <p className="text-xs text-[#F5F5F5]/60 mt-1">
+              O token da conta <strong className="text-[#C9A84C]">@panteao_digital</strong> expirou.
+              Os posts agendados (POST-006 em diante) <strong className="text-[#EF4444]">não serão publicados automaticamente</strong> sem renovação.
+            </p>
+            <p className="text-xs text-[#F5F5F5]/40 mt-2">
+              👉 <strong className="text-[#F5F5F5]/70">Yuri:</strong> acesse Meta Business Suite → Configurações → Integrações → renovar token de longa duração e enviar ao Hefesto.
+            </p>
+          </div>
+          <span className="flex-shrink-0 text-[10px] px-2 py-1 bg-[#EF4444]/20 border border-[#EF4444]/30 rounded-lg text-[#EF4444] font-bold whitespace-nowrap">
+            ⏰ Prazo: 20/03
+          </span>
+        </div>
+
         {/* ── Countdown ── */}
-        <div className="mt-8">
+        <div className="mt-6">
           <Countdown/>
         </div>
+
+        {/* ══ HEARTBEATS & CRONS ══ */}
+        <CronsSection/>
 
         {/* ── @stm.capital alert ── */}
         <div className="mt-4 flex items-start gap-3 p-4 bg-[#F59E0B]/8 border border-[#F59E0B]/20 rounded-xl">
@@ -791,6 +826,243 @@ export default function AgendaPage() {
           Agenda atualizada manualmente · Para integrar com Google Calendar, acionar Hera
         </p>
       </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// HEARTBEATS & CRONS SECTION
+// ═══════════════════════════════════════════════════════════════════════
+
+type CronStatus = "ok" | "alerta" | "erro" | "pendente";
+
+interface CronEntry {
+  id: string;
+  nome: string;
+  tipo: "heartbeat" | "post" | "reuniao" | "infra" | "outro";
+  frequencia: string;
+  proximaExec: string;
+  expressao: string;
+  ultimoStatus: CronStatus;
+  ultimaMensagem?: string;
+}
+
+const CRONS: CronEntry[] = [
+  {
+    id:"hb-mariana", nome:"Heartbeat Mariana", tipo:"heartbeat",
+    frequencia:"3x dia — 09h, 16h, 21h BRT",
+    proximaExec:"Próximo: 09:00 BRT (amanhã)",
+    expressao:"0 12,19,0 * * *",
+    ultimoStatus:"ok", ultimaMensagem:"HEARTBEAT_OK — 17/03 21:00",
+  },
+  {
+    id:"post4", nome:"Post 4 @panteao_digital", tipo:"post",
+    frequencia:"Uma vez — 18/03 12h BRT",
+    proximaExec:"18/03/2026 às 12:00 BRT",
+    expressao:"0 15 18 3 *",
+    ultimoStatus:"pendente", ultimaMensagem:"Aguardando execução",
+  },
+  {
+    id:"post-seg", nome:"Post Automático — Segunda", tipo:"post",
+    frequencia:"Toda segunda 11h UTC",
+    proximaExec:"Próxima segunda 11h UTC",
+    expressao:"0 11 * * 1",
+    ultimoStatus:"ok", ultimaMensagem:"Último: 16/03 11:00",
+  },
+  {
+    id:"post-qua", nome:"Post Automático — Quarta", tipo:"post",
+    frequencia:"Toda quarta 15h UTC",
+    proximaExec:"Próxima quarta 15h UTC",
+    expressao:"0 15 * * 3",
+    ultimoStatus:"ok", ultimaMensagem:"Último: 11/03 15:00",
+  },
+  {
+    id:"post-sex", nome:"Post Automático — Sexta", tipo:"post",
+    frequencia:"Toda sexta 21h UTC",
+    proximaExec:"Próxima sexta 21h UTC",
+    expressao:"0 21 * * 5",
+    ultimoStatus:"ok", ultimaMensagem:"Último: 14/03 21:00",
+  },
+  {
+    id:"post-dom", nome:"Post Automático — Domingo", tipo:"post",
+    frequencia:"Todo domingo 13h UTC",
+    proximaExec:"23/03/2026 13:00 UTC",
+    expressao:"0 13 * * 0",
+    ultimoStatus:"ok", ultimaMensagem:"Último: 16/03 13:00",
+  },
+  {
+    id:"reuniao", nome:"Reunião Semanal — Delegate Mariana", tipo:"reuniao",
+    frequencia:"Todo domingo 13h UTC (10h BRT)",
+    proximaExec:"23/03/2026 13:00 UTC",
+    expressao:"0 13 * * 0",
+    ultimoStatus:"ok", ultimaMensagem:"Último: 16/03 13:00",
+  },
+  {
+    id:"notify-agents", nome:"Notify Agents", tipo:"infra",
+    frequencia:"A cada 15 minutos",
+    proximaExec:"Em ~15 min",
+    expressao:"*/15 * * * *",
+    ultimoStatus:"ok", ultimaMensagem:"Contínuo",
+  },
+  {
+    id:"gateway-relay", nome:"Gateway Relay (watchdog)", tipo:"infra",
+    frequencia:"A cada 5 minutos",
+    proximaExec:"Em ~5 min",
+    expressao:"*/5 * * * *",
+    ultimoStatus:"ok", ultimaMensagem:"gateway-relay.js rodando",
+  },
+  {
+    id:"cloudflared", nome:"Tunnel Cloudflared (watchdog)", tipo:"infra",
+    frequencia:"A cada 5 minutos",
+    proximaExec:"Em ~5 min",
+    expressao:"*/5 * * * *",
+    ultimoStatus:"ok", ultimaMensagem:"Túnel ativo",
+  },
+];
+
+const CRON_TIPO_CFG = {
+  heartbeat: { icon:"💓", color:"#71717A", label:"Heartbeat" },
+  post:      { icon:"📸", color:"#C9A84C", label:"Post"      },
+  reuniao:   { icon:"👥", color:"#9B7EC8", label:"Reunião"   },
+  infra:     { icon:"⚙️", color:"#06B6D4", label:"Infra"     },
+  outro:     { icon:"◈",  color:"#F5F5F5", label:"Outro"     },
+};
+
+const CRON_STATUS_CFG: Record<CronStatus,{dot:string;label:string;bg:string}> = {
+  ok:       { dot:"#4ADE80", label:"OK",       bg:"#4ADE8018" },
+  alerta:   { dot:"#F59E0B", label:"Alerta",   bg:"#F59E0B18" },
+  erro:     { dot:"#EF4444", label:"Erro",      bg:"#EF444418" },
+  pendente: { dot:"#71717A", label:"Pendente", bg:"#71717A18" },
+};
+
+function CronsSection() {
+  const [collapsed, setCollapsed] = useState(false);
+  const [filterTipo, setFilterTipo] = useState<CronEntry["tipo"] | "">("");
+
+  const shown = filterTipo ? CRONS.filter(c => c.tipo === filterTipo) : CRONS;
+
+  const okCount      = CRONS.filter(c => c.ultimoStatus === "ok").length;
+  const alertCount   = CRONS.filter(c => c.ultimoStatus === "alerta").length;
+  const erroCount    = CRONS.filter(c => c.ultimoStatus === "erro").length;
+
+  return (
+    <div className="mt-6 bg-[#0D0D0D] border border-[#06B6D4]/15 rounded-2xl overflow-hidden">
+      {/* Header */}
+      <button
+        className="w-full flex items-center gap-3 px-5 py-4 hover:bg-white/[0.02] transition-colors"
+        onClick={() => setCollapsed(c => !c)}
+      >
+        <span className="text-base">⚙️</span>
+        <span className="text-sm font-bold text-[#F5F5F5]">Heartbeats & Crons</span>
+        <div className="flex items-center gap-2 ml-2">
+          <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#4ADE80]/10 border border-[#4ADE80]/25 text-[#4ADE80]">
+            {okCount} OK
+          </span>
+          {alertCount > 0 && (
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#F59E0B]/10 border border-[#F59E0B]/25 text-[#F59E0B]">
+              {alertCount} Alerta
+            </span>
+          )}
+          {erroCount > 0 && (
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#EF4444]/10 border border-[#EF4444]/25 text-[#EF4444]">
+              {erroCount} Erro
+            </span>
+          )}
+        </div>
+        <div className="ml-auto text-[#F5F5F5]/30">
+          {collapsed ? <ChevronDown size={15}/> : <ChevronUp size={15}/>}
+        </div>
+      </button>
+
+      {!collapsed && (
+        <div className="border-t border-white/5">
+          {/* Filter tabs */}
+          <div className="flex items-center gap-1 px-4 py-3 border-b border-white/5 overflow-x-auto">
+            {(["","heartbeat","post","reuniao","infra"] as const).map(t => (
+              <button key={t} onClick={() => setFilterTipo(t)}
+                className={`px-3 py-1 rounded-lg text-[10px] font-medium transition-colors whitespace-nowrap ${
+                  filterTipo === t
+                    ? "bg-[#06B6D4]/15 border border-[#06B6D4]/30 text-[#06B6D4]"
+                    : "text-[#F5F5F5]/30 hover:text-[#F5F5F5]/60"
+                }`}>
+                {t === "" ? "Todos" : `${CRON_TIPO_CFG[t].icon} ${CRON_TIPO_CFG[t].label}`}
+              </button>
+            ))}
+          </div>
+
+          {/* Table header */}
+          <div className="grid grid-cols-[32px_1fr_160px_160px_90px] gap-3 px-5 py-2 bg-[#0A0A0A] text-[9px] text-[#F5F5F5]/25 uppercase tracking-wider font-semibold">
+            <span/>
+            <span>Nome / Expressão</span>
+            <span>Frequência</span>
+            <span>Próxima Exec.</span>
+            <span>Status</span>
+          </div>
+
+          {/* Rows */}
+          {shown.map(cron => {
+            const tipo = CRON_TIPO_CFG[cron.tipo];
+            const st   = CRON_STATUS_CFG[cron.ultimoStatus];
+            return (
+              <div key={cron.id}
+                className="grid grid-cols-[32px_1fr_160px_160px_90px] gap-3 px-5 py-3 border-t border-white/5 items-center hover:bg-white/[0.015] transition-colors">
+                {/* Icon */}
+                <div className="flex items-center justify-center w-7 h-7 rounded-lg text-sm"
+                  style={{ backgroundColor: `${tipo.color}18` }}>
+                  {tipo.icon}
+                </div>
+                {/* Name */}
+                <div>
+                  <p className="text-xs font-medium text-[#F5F5F5]/80">{cron.nome}</p>
+                  <p className="text-[9px] text-[#F5F5F5]/25 font-mono mt-0.5">{cron.expressao}</p>
+                  {cron.ultimaMensagem && (
+                    <p className="text-[9px] text-[#F5F5F5]/20 mt-0.5">{cron.ultimaMensagem}</p>
+                  )}
+                </div>
+                {/* Frequência */}
+                <p className="text-[10px] text-[#F5F5F5]/45 leading-relaxed">{cron.frequencia}</p>
+                {/* Próxima */}
+                <p className="text-[10px] text-[#F5F5F5]/45">{cron.proximaExec}</p>
+                {/* Status */}
+                <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] font-medium"
+                  style={{ color: st.dot, backgroundColor: st.bg }}>
+                  <span className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                    style={{ backgroundColor: st.dot }}/>
+                  {st.label}
+                </span>
+              </div>
+            );
+          })}
+
+          {/* Heartbeats detail */}
+          <div className="px-5 py-4 bg-[#080808] border-t border-white/5">
+            <p className="text-[10px] text-[#F5F5F5]/25 uppercase tracking-wider mb-3">Heartbeats Mariana — histórico recente</p>
+            <div className="flex items-center gap-2 flex-wrap">
+              {[
+                { label:"17/03 09h", status:"ok"      as CronStatus },
+                { label:"17/03 16h", status:"ok"      as CronStatus },
+                { label:"17/03 21h", status:"ok"      as CronStatus },
+                { label:"16/03 21h", status:"ok"      as CronStatus },
+                { label:"16/03 16h", status:"ok"      as CronStatus },
+                { label:"16/03 09h", status:"ok"      as CronStatus },
+                { label:"15/03 21h", status:"alerta"  as CronStatus },
+              ].map(h => (
+                <div key={h.label}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border"
+                  style={{
+                    borderColor: `${CRON_STATUS_CFG[h.status].dot}30`,
+                    backgroundColor: CRON_STATUS_CFG[h.status].bg,
+                  }}>
+                  <span className="w-1.5 h-1.5 rounded-full"
+                    style={{ backgroundColor: CRON_STATUS_CFG[h.status].dot }}/>
+                  <span className="text-[10px] font-mono"
+                    style={{ color: CRON_STATUS_CFG[h.status].dot }}>{h.label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
