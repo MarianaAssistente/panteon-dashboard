@@ -810,21 +810,18 @@ export default function AgendaPage() {
         {/* ══ FORMATO MODELO ══ */}
         <FormatoModeloSection/>
 
-        {/* ══ TOKEN EXPIRADO — ALERTA URGENTE ══ */}
-        <div className="mt-6 flex items-start gap-3 p-4 bg-[#EF4444]/10 border-2 border-[#EF4444]/40 rounded-xl animate-pulse">
-          <AlertCircle size={18} className="text-[#EF4444] flex-shrink-0 mt-0.5"/>
+        {/* ══ TOKEN RENOVADO ══ */}
+        <div className="mt-6 flex items-start gap-3 p-4 bg-[#4ADE80]/8 border border-[#4ADE80]/25 rounded-xl">
+          <CheckCircle size={16} className="text-[#4ADE80] flex-shrink-0 mt-0.5"/>
           <div className="flex-1">
-            <p className="text-sm font-bold text-[#EF4444]">🚨 TOKEN INSTAGRAM EXPIRADO — Ação necessária antes de 20/03</p>
-            <p className="text-xs text-[#F5F5F5]/60 mt-1">
-              O token da conta <strong className="text-[#C9A84C]">@panteao_digital</strong> expirou.
-              Os posts agendados (POST-006 em diante) <strong className="text-[#EF4444]">não serão publicados automaticamente</strong> sem renovação.
-            </p>
-            <p className="text-xs text-[#F5F5F5]/40 mt-2">
-              👉 <strong className="text-[#F5F5F5]/70">Yuri:</strong> acesse Meta Business Suite → Configurações → Integrações → renovar token de longa duração e enviar ao Hefesto.
+            <p className="text-sm font-semibold text-[#4ADE80]">✅ Token Instagram renovado — 17/03/2026</p>
+            <p className="text-xs text-[#F5F5F5]/50 mt-1">
+              Novo Page Access Token para <strong className="text-[#C9A84C]">@panteao_digital</strong> ativo e sem expiração.
+              Posts POST-006 em diante publicarão normalmente. Ver <a href="/credentials" className="underline text-[#C9A84C]">Credenciais</a>.
             </p>
           </div>
-          <span className="flex-shrink-0 text-[10px] px-2 py-1 bg-[#EF4444]/20 border border-[#EF4444]/30 rounded-lg text-[#EF4444] font-bold whitespace-nowrap">
-            ⏰ Prazo: 20/03
+          <span className="flex-shrink-0 text-[10px] px-2 py-1 bg-[#4ADE80]/15 border border-[#4ADE80]/25 rounded-lg text-[#4ADE80] font-semibold whitespace-nowrap">
+            Não expira
           </span>
         </div>
 

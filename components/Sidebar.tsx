@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { FolderOpen, BookOpen, Network, Globe, MessageCircle, CalendarDays, Server } from "lucide-react";
+import { FolderOpen, BookOpen, Network, Globe, MessageCircle, CalendarDays, Server, Shield } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 interface NavItem {
@@ -63,7 +63,8 @@ export default function Sidebar() {
     { href: "/knowledge",  label: "Conhecimento",    icon: "🧠", lucideIcon: <BookOpen size={14} /> },
     { href: "/approvals",  label: "Aprovações",      icon: "◇", badge: pendingCount },
     { href: "/organograma", label: "Organograma",     icon: "◉", lucideIcon: <Network size={14} /> },
-    { href: "/agenda",     label: "Agenda",          icon: "◌", lucideIcon: <CalendarDays size={14} /> },
+    { href: "/agenda",       label: "Agenda",          icon: "◌", lucideIcon: <CalendarDays size={14} /> },
+    { href: "/credentials", label: "Credenciais",     icon: "◌", lucideIcon: <Shield size={14} /> },
     { href: "/sites",       label: "Sites & Páginas", icon: "◌", lucideIcon: <Globe size={14} /> },
     { href: "/system",      label: "Infra & Crons",   icon: "◌", lucideIcon: <Server size={14} /> },
     { href: "/chat",       label: "Chat",            icon: "◌", lucideIcon: <MessageCircle size={14} /> },
