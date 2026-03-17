@@ -1,421 +1,815 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Calendar, Clock, Instagram, BookOpen, Timer, CheckCircle, AlertCircle, Hourglass } from "lucide-react";
+import { useState, useMemo, useCallback } from "react";
+import {
+  ChevronLeft, ChevronRight, Calendar, Clock, Timer,
+  CheckCircle, AlertCircle, Hourglass, FileText, ChevronDown,
+  ChevronUp, ChevronsUpDown, Instagram, Radio, Film,
+  DollarSign, Users, Mail, BookOpen, Maximize2, Minimize2,
+} from "lucide-react";
 
-// ═══════════════════════════════════════════════════════════════
-// TYPES & DATA
-// ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════
+// TYPES
+// ═══════════════════════════════════════════════════════════════════════
 
-type PostStatus = "publicado" | "agendado" | "pendente";
+type Account   = "@panteao_digital" | "@stm.capital" | "@stmgroup";
+type ContentType = "Feed Post" | "Story" | "Reel" | "Tráfego Pago" | "Reunião" | "Email" | "Blog Post";
+type Status    = "Publicado" | "Agendado" | "Pendente Aprovação" | "Rascunho" | "Cancelado";
+type Criticality = "Rotineiro" | "Moderado" | "Crítico" | "Urgente";
 
-interface ScheduledPost {
+type PipelineStep = "Roteiro" | "Copywriting" | "Conteúdo" | "Aprovação" | "Agendado" | "Publicado";
+const PIPELINE: PipelineStep[] = ["Roteiro","Copywriting","Conteúdo","Aprovação","Agendado","Publicado"];
+
+interface ContentItem {
   id: string;
-  numero: number;
   titulo: string;
-  conteudo: string;
-  data: string;        // "DD/MM/YYYY"
-  horario: string;     // "HH:MM"
-  status: PostStatus;
-  tipo: "post" | "carrossel" | "chat" | "ebook" | "countdown";
-  plataforma: string;
+  conteudo?: string;
+  caption?: string;
+  account: Account;
+  type: ContentType;
+  date: string;        // YYYY-MM-DD
+  time: string;        // HH:MM
+  status: Status;
+  criticality: Criticality;
+  pipeline: PipelineStep;
+  recorrente?: boolean;
+  tags?: string[];
 }
 
-interface ScheduledStory {
-  id: string;
-  data: string;
-  tema: string;
-  horario: string;
-  status: PostStatus;
-}
+// ═══════════════════════════════════════════════════════════════════════
+// DATA
+// ═══════════════════════════════════════════════════════════════════════
 
-const POSTS: ScheduledPost[] = [
+const ITEMS: ContentItem[] = [
+  // ── Feed @panteao_digital ─────────────────────────────────────────────
   {
-    id: "p3", numero: 3,
-    titulo: "Mariana — CEO",
-    conteudo: "Apresentação da Mariana como CEO do Panteão Digital. Quem é a liderança por trás dos 8 agentes.",
-    data: "17/03/2026", horario: "12:00",
-    status: "publicado", tipo: "post", plataforma: "Instagram @panteaodigital",
+    id:"p3", titulo:"Post 3 — Mariana CEO",
+    conteudo:"Apresentação da Mariana como CEO. Quem é a liderança do Panteão Digital.",
+    caption:"👑 Conheça a CEO do Panteão...",
+    account:"@panteao_digital", type:"Feed Post",
+    date:"2026-03-17", time:"09:00",
+    status:"Publicado", criticality:"Rotineiro", pipeline:"Publicado",
+    tags:["apresentacao","ceo","mariana"],
   },
   {
-    id: "p4", numero: 4,
-    titulo: "Atena — CSO",
-    conteudo: "Apresentação da Atena, Chief Strategy Officer. Como a estratégia é feita por IA no Panteão.",
-    data: "18/03/2026", horario: "12:00",
-    status: "agendado", tipo: "post", plataforma: "Instagram @panteaodigital",
+    id:"p4", titulo:"Post 4 — Atena CSO",
+    conteudo:"Apresentação da Atena, Chief Strategy Officer. Estratégia feita por IA.",
+    account:"@panteao_digital", type:"Feed Post",
+    date:"2026-03-18", time:"12:00",
+    status:"Agendado", criticality:"Rotineiro", pipeline:"Agendado",
+    tags:["apresentacao","cso","atena"],
   },
   {
-    id: "p5", numero: 5,
-    titulo: "Hefesto — CTO",
-    conteudo: "Apresentação do Hefesto, Chief Technology Officer. Quem constrói toda a infra do Panteão.",
-    data: "19/03/2026", horario: "09:00",
-    status: "agendado", tipo: "post", plataforma: "Instagram @panteaodigital",
+    id:"p5", titulo:"Post 5 — Hefesto CTO",
+    conteudo:"Apresentação do Hefesto, Chief Technology Officer. Quem constrói a infra.",
+    account:"@panteao_digital", type:"Feed Post",
+    date:"2026-03-19", time:"09:00",
+    status:"Agendado", criticality:"Rotineiro", pipeline:"Agendado",
+    tags:["apresentacao","cto","hefesto"],
   },
   {
-    id: "p6", numero: 6,
-    titulo: "Carrossel — Os 8 Agentes",
-    conteudo: "Carrossel apresentando todos os 8 agentes do Panteão com seus papéis e emojis.",
-    data: "20/03/2026", horario: "11:00",
-    status: "agendado", tipo: "carrossel", plataforma: "Instagram @panteaodigital",
+    id:"p6", titulo:"Post 6 — Carrossel 8 Agentes",
+    conteudo:"Carrossel apresentando os 8 agentes. Logo sendo refeita — aguardando aprovação.",
+    account:"@panteao_digital", type:"Feed Post",
+    date:"2026-03-20", time:"11:00",
+    status:"Pendente Aprovação", criticality:"Rotineiro", pipeline:"Aprovação",
+    tags:["carrossel","agentes","logo"],
   },
   {
-    id: "p7", numero: 7,
-    titulo: "Chat — Bastidores IA",
-    conteudo: "Post mostrando uma conversa real com um agente — bastidores do Panteão em ação.",
-    data: "22/03/2026", horario: "21:00",
-    status: "agendado", tipo: "chat", plataforma: "Instagram @panteaodigital",
+    id:"p7", titulo:"Post 7 — Chat Bastidores",
+    conteudo:"Post mostrando conversa real com agente — bastidores do Panteão em ação.",
+    account:"@panteao_digital", type:"Feed Post",
+    date:"2026-03-22", time:"21:00",
+    status:"Pendente Aprovação", criticality:"Rotineiro", pipeline:"Conteúdo",
+    tags:["bastidores","chat","ia"],
   },
   {
-    id: "p8", numero: 8,
-    titulo: "E-book — Lançamento em breve",
-    conteudo: "Teaser do e-book 'Construindo seu Panteão Digital'. Abertura da lista de espera.",
-    data: "24/03/2026", horario: "19:00",
-    status: "agendado", tipo: "ebook", plataforma: "Instagram @panteaodigital",
+    id:"p8", titulo:"Post 8 — E-book Teaser",
+    conteudo:"Teaser do e-book 'Construindo seu Panteão Digital'. Abertura da lista de espera.",
+    account:"@panteao_digital", type:"Feed Post",
+    date:"2026-03-24", time:"19:00",
+    status:"Pendente Aprovação", criticality:"Moderado", pipeline:"Copywriting",
+    tags:["ebook","lancamento","teaser"],
   },
   {
-    id: "p9", numero: 9,
-    titulo: "Countdown — Dia D",
-    conteudo: "Post de countdown para o lançamento do e-book às 25/03. Urgência máxima.",
-    data: "25/03/2026", horario: "09:00",
-    status: "agendado", tipo: "countdown", plataforma: "Instagram @panteaodigital",
+    id:"p9", titulo:"Post 9 — Countdown Dia D",
+    conteudo:"Post de countdown para o lançamento do e-book às 25/03. Máxima urgência.",
+    account:"@panteao_digital", type:"Feed Post",
+    date:"2026-03-25", time:"09:00",
+    status:"Pendente Aprovação", criticality:"Crítico", pipeline:"Roteiro",
+    tags:["countdown","lancamento","ebook"],
   },
   {
-    id: "p10", numero: 10,
-    titulo: "Carrossel 10 Slides — Lançamento",
-    conteudo: "Carrossel de 10 slides anunciando o lançamento oficial do e-book Panteão Digital.",
-    data: "25/03/2026", horario: "12:00",
-    status: "agendado", tipo: "carrossel", plataforma: "Instagram @panteaodigital",
+    id:"p10", titulo:"Post 10 — Carrossel Lançamento (10 slides)",
+    conteudo:"Carrossel de 10 slides anunciando o lançamento oficial do e-book Panteão Digital.",
+    account:"@panteao_digital", type:"Feed Post",
+    date:"2026-03-25", time:"12:00",
+    status:"Pendente Aprovação", criticality:"Crítico", pipeline:"Roteiro",
+    tags:["carrossel","lancamento","ebook"],
+  },
+
+  // ── Stories @panteao_digital ──────────────────────────────────────────
+  {
+    id:"s1", titulo:"Story — Teaser Mariana CEO",
+    conteudo:"Story de bastidores da gravação do post da Mariana.",
+    account:"@panteao_digital", type:"Story",
+    date:"2026-03-17", time:"07:30",
+    status:"Pendente Aprovação", criticality:"Rotineiro", pipeline:"Conteúdo",
+  },
+  {
+    id:"s2", titulo:"Story — Poll: IA no seu negócio?",
+    conteudo:"Enquete de engajamento: você usa IA no trabalho?",
+    account:"@panteao_digital", type:"Story",
+    date:"2026-03-17", time:"21:00",
+    status:"Pendente Aprovação", criticality:"Rotineiro", pipeline:"Roteiro",
+  },
+  {
+    id:"s3", titulo:"Story — Quiz: qual agente é você?",
+    account:"@panteao_digital", type:"Story",
+    date:"2026-03-18", time:"19:00",
+    status:"Rascunho", criticality:"Rotineiro", pipeline:"Roteiro",
+  },
+  {
+    id:"s4", titulo:"Story — Teaser Atena CSO",
+    account:"@panteao_digital", type:"Story",
+    date:"2026-03-18", time:"22:00",
+    status:"Rascunho", criticality:"Rotineiro", pipeline:"Roteiro",
+  },
+  {
+    id:"s5", titulo:"Story — Bastidores e-book (pág. 1)",
+    account:"@panteao_digital", type:"Story",
+    date:"2026-03-21", time:"19:00",
+    status:"Rascunho", criticality:"Rotineiro", pipeline:"Roteiro",
+  },
+  {
+    id:"s6", titulo:"Story — Contagem regressiva 4 dias",
+    account:"@panteao_digital", type:"Story",
+    date:"2026-03-21", time:"21:30",
+    status:"Rascunho", criticality:"Moderado", pipeline:"Roteiro",
+  },
+  {
+    id:"s7", titulo:"Story — Countdown 24h — amanhã é o dia",
+    account:"@panteao_digital", type:"Story",
+    date:"2026-03-24", time:"20:00",
+    status:"Rascunho", criticality:"Crítico", pipeline:"Roteiro",
+  },
+  {
+    id:"s8", titulo:"Story — 🚀 AO VIVO — Lançamento e-book",
+    account:"@panteao_digital", type:"Story",
+    date:"2026-03-25", time:"09:00",
+    status:"Rascunho", criticality:"Crítico", pipeline:"Roteiro",
+  },
+
+  // ── Reunião recorrente ────────────────────────────────────────────────
+  {
+    id:"r1", titulo:"Reunião Semanal — Retrospectiva",
+    conteudo:"Retrospectiva semanal de todos os agentes. Pauta: entregas, bloqueios, próxima semana.",
+    account:"@panteao_digital", type:"Reunião",
+    date:"2026-03-23", time:"19:00",
+    status:"Agendado", criticality:"Moderado", pipeline:"Agendado",
+    recorrente: true,
+    tags:["reuniao","retrospectiva","semanal"],
+  },
+
+  // ── @stm.capital ──────────────────────────────────────────────────────
+  {
+    id:"cap1", titulo:"@stm.capital — Estratégia de Conteúdo",
+    conteudo:"Conta parada. Necessita estratégia de conteúdo e calendário editorial. Prioridade: criar primeiros 4 posts do mês.",
+    account:"@stm.capital", type:"Feed Post",
+    date:"2026-03-20", time:"10:00",
+    status:"Rascunho", criticality:"Moderado", pipeline:"Roteiro",
+    tags:["stm-capital","estrategia","pendente"],
   },
 ];
 
-const STORIES: ScheduledStory[] = [
-  { id: "s1", data: "17/03/2026", tema: "Bastidores: gravação do post da Mariana", horario: "14:00", status: "publicado" },
-  { id: "s2", data: "18/03/2026", tema: "Enquete: você usa IA no trabalho?", horario: "13:00", status: "agendado" },
-  { id: "s3", data: "19/03/2026", tema: "Quiz: descubra qual agente é você", horario: "10:00", status: "agendado" },
-  { id: "s4", data: "20/03/2026", tema: "Contagem regressiva — 5 dias para o lançamento", horario: "12:00", status: "agendado" },
-  { id: "s5", data: "21/03/2026", tema: "Bastidores: preparação do e-book", horario: "19:00", status: "pendente" },
-  { id: "s6", data: "22/03/2026", tema: "Teaser de página do e-book", horario: "21:30", status: "pendente" },
-  { id: "s7", data: "24/03/2026", tema: "Countdown 24h — amanhã é o dia", horario: "20:00", status: "pendente" },
-  { id: "s8", data: "25/03/2026", tema: "🚀 AO VIVO — lançamento do e-book", horario: "09:00", status: "pendente" },
-];
+// ═══════════════════════════════════════════════════════════════════════
+// CONSTANTS
+// ═══════════════════════════════════════════════════════════════════════
 
-const TIPO_ICON: Record<string, string> = {
-  post: "📸", carrossel: "🎠", chat: "💬", ebook: "📚", countdown: "⏱️",
+const ACCOUNT_CFG: Record<Account,{color:string;bg:string;label:string}> = {
+  "@panteao_digital": { color:"#C9A84C", bg:"#C9A84C18", label:"@panteao_digital" },
+  "@stm.capital":     { color:"#06B6D4", bg:"#06B6D418", label:"@stm.capital"     },
+  "@stmgroup":        { color:"#9B7EC8", bg:"#9B7EC818", label:"@stmgroup"         },
 };
 
-const TIPO_COLOR: Record<string, string> = {
-  post: "#D4AF37", carrossel: "#06B6D4", chat: "#9B7EC8", ebook: "#F59E0B", countdown: "#F87171",
+const STATUS_CFG: Record<Status,{icon:React.ReactNode;color:string;bg:string;label:string}> = {
+  "Publicado":         { icon:<CheckCircle size={10}/>,  color:"#4ADE80", bg:"#4ADE8018", label:"Publicado"         },
+  "Agendado":          { icon:<Clock size={10}/>,         color:"#C9A84C", bg:"#C9A84C18", label:"Agendado"          },
+  "Pendente Aprovação":{ icon:<Hourglass size={10}/>,     color:"#F59E0B", bg:"#F59E0B18", label:"Pend. Aprovação"   },
+  "Rascunho":          { icon:<FileText size={10}/>,      color:"#71717A", bg:"#71717A18", label:"Rascunho"          },
+  "Cancelado":         { icon:<AlertCircle size={10}/>,   color:"#EF4444", bg:"#EF444418", label:"Cancelado"         },
 };
 
-// ═══════════════════════════════════════════════════════════════
+const CRITICALITY_CFG: Record<Criticality,{dot:string;color:string;label:string}> = {
+  "Rotineiro": { dot:"#22C55E", color:"#22C55E", label:"Rotineiro" },
+  "Moderado":  { dot:"#F59E0B", color:"#F59E0B", label:"Moderado"  },
+  "Crítico":   { dot:"#EF4444", color:"#EF4444", label:"Crítico"   },
+  "Urgente":   { dot:"#1F1F1F", color:"#F5F5F5", label:"Urgente"   },
+};
+
+const TYPE_CFG: Record<ContentType,{icon:React.ReactNode;color:string}> = {
+  "Feed Post":    { icon:<Instagram size={13}/>, color:"#C9A84C" },
+  "Story":        { icon:<Radio size={13}/>,     color:"#06B6D4" },
+  "Reel":         { icon:<Film size={13}/>,      color:"#9B7EC8" },
+  "Tráfego Pago": { icon:<DollarSign size={13}/>,color:"#F87171" },
+  "Reunião":      { icon:<Users size={13}/>,     color:"#4ADE80" },
+  "Email":        { icon:<Mail size={13}/>,      color:"#F59E0B" },
+  "Blog Post":    { icon:<BookOpen size={13}/>,  color:"#8BA888" },
+};
+
+const DAYS_PT = ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
+const MONTHS_PT = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+
+// ═══════════════════════════════════════════════════════════════════════
 // HELPERS
-// ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════
 
-function parseDate(dataStr: string, horario: string): Date {
-  const [d, m, y] = dataStr.split("/").map(Number);
-  const [h, min] = horario.split(":").map(Number);
-  return new Date(y, m - 1, d, h, min);
+function toISO(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 }
 
-function StatusBadge({ status }: { status: PostStatus }) {
-  const cfg = {
-    publicado: { icon: <CheckCircle size={11} />, label: "Publicado", cls: "bg-emerald-500/15 text-emerald-400 border-emerald-500/25" },
-    agendado:  { icon: <Clock size={11} />,        label: "Agendado",  cls: "bg-[#D4AF37]/15 text-[#D4AF37] border-[#D4AF37]/25" },
-    pendente:  { icon: <Hourglass size={11} />,    label: "Pendente",  cls: "bg-zinc-500/15 text-zinc-400 border-zinc-500/25" },
-  }[status];
-  return (
-    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-medium ${cfg.cls}`}>
-      {cfg.icon} {cfg.label}
-    </span>
-  );
+function startOfWeek(d: Date): Date {
+  const r = new Date(d);
+  r.setDate(d.getDate() - d.getDay()); // Sunday=0
+  return r;
 }
 
-function SectionHeader({ icon, title, count, color = "#D4AF37" }: {
-  icon: React.ReactNode; title: string; count: number; color?: string;
-}) {
+function addDays(d: Date, n: number): Date {
+  const r = new Date(d);
+  r.setDate(d.getDate() + n);
+  return r;
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// PIPELINE BAR
+// ═══════════════════════════════════════════════════════════════════════
+
+function PipelineBar({ step }: { step: PipelineStep }) {
+  const idx = PIPELINE.indexOf(step);
   return (
-    <div className="flex items-center gap-3 mb-4">
-      <span style={{ color }}>{icon}</span>
-      <h2 className="text-base font-bold text-[#F5F5F5]">{title}</h2>
-      <span className="text-[10px] px-2 py-0.5 rounded-full border font-mono"
-        style={{ color, borderColor: `${color}30`, backgroundColor: `${color}10` }}>
-        {count}
-      </span>
+    <div className="flex items-center gap-0.5 mt-3">
+      {PIPELINE.map((s, i) => {
+        const done = i < idx;
+        const active = i === idx;
+        return (
+          <div key={s} className="flex-1 flex flex-col items-center gap-1">
+            <div className={`h-1.5 w-full rounded-full transition-colors ${
+              done   ? "bg-[#C9A84C]" :
+              active ? "bg-[#C9A84C]/50" :
+                       "bg-white/8"
+            }`}/>
+            {active && (
+              <span className="text-[8px] text-[#C9A84C] font-medium leading-none">{s}</span>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
 
-// ═══════════════════════════════════════════════════════════════
-// COUNTDOWN COMPONENT
-// ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════
+// CONTENT CARD (expandable)
+// ═══════════════════════════════════════════════════════════════════════
 
-function Countdown() {
-  const TARGET = new Date(2026, 2, 25, 9, 0, 0); // 25/03/2026 09:00
-  const [diff, setDiff] = useState(TARGET.getTime() - Date.now());
+function ContentCard({ item, forceExpanded }: { item: ContentItem; forceExpanded?: boolean }) {
+  const [expanded, setExpanded] = useState(false);
+  const isOpen = forceExpanded ?? expanded;
 
-  useEffect(() => {
-    const t = setInterval(() => setDiff(TARGET.getTime() - Date.now()), 1000);
-    return () => clearInterval(t);
-  }, []);
-
-  const past = diff <= 0;
-  const days    = past ? 0 : Math.floor(diff / 86400000);
-  const hours   = past ? 0 : Math.floor((diff % 86400000) / 3600000);
-  const minutes = past ? 0 : Math.floor((diff % 3600000) / 60000);
-  const seconds = past ? 0 : Math.floor((diff % 60000) / 1000);
-
-  const Unit = ({ value, label }: { value: number; label: string }) => (
-    <div className="flex flex-col items-center">
-      <div className="bg-[#111] border border-[#D4AF37]/20 rounded-xl px-4 py-3 min-w-[64px] text-center">
-        <span className="text-2xl font-bold font-mono text-[#D4AF37]">
-          {String(value).padStart(2, "0")}
-        </span>
-      </div>
-      <span className="text-[10px] text-[#F5F5F5]/30 mt-1 uppercase tracking-wider">{label}</span>
-    </div>
-  );
+  const acct  = ACCOUNT_CFG[item.account];
+  const st    = STATUS_CFG[item.status];
+  const crit  = CRITICALITY_CFG[item.criticality];
+  const type  = TYPE_CFG[item.type];
 
   return (
-    <div className="bg-[#0D0D0D] border border-[#D4AF37]/20 rounded-2xl p-6">
-      <div className="flex items-center gap-2 mb-4">
-        <Timer size={16} className="text-[#D4AF37]" />
-        <h2 className="text-base font-bold text-[#F5F5F5]">Próximo Lançamento</h2>
-        <span className="text-xs text-[#F5F5F5]/40 ml-auto">25/03/2026 às 09:00</span>
-      </div>
-
-      <p className="text-sm text-[#F5F5F5]/50 mb-5">
-        🚀 <strong className="text-[#D4AF37]">E-book Panteão Digital</strong> — Lançamento oficial com carrossel + stories
-      </p>
-
-      {past ? (
-        <div className="text-center py-4">
-          <p className="text-2xl font-bold text-[#4ADE80]">🎉 LANÇADO!</p>
-          <p className="text-[#F5F5F5]/40 text-sm mt-1">O e-book foi publicado.</p>
+    <div className={`bg-[#0D0D0D] border rounded-xl overflow-hidden transition-all ${
+      item.criticality === "Crítico" ? "border-[#EF4444]/20" :
+      item.criticality === "Urgente" ? "border-[#F5F5F5]/30" :
+      "border-white/8"
+    }`}>
+      {/* Header */}
+      <div
+        className="flex items-start gap-3 p-3 cursor-pointer hover:bg-white/[0.02] transition-colors"
+        onClick={() => !forceExpanded && setExpanded(e => !e)}
+      >
+        {/* Type icon */}
+        <div className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center mt-0.5"
+          style={{ backgroundColor: `${type.color}18`, color: type.color }}>
+          {type.icon}
         </div>
-      ) : (
-        <div className="flex items-center gap-3 justify-center">
-          <Unit value={days}    label="dias" />
-          <span className="text-[#D4AF37]/40 text-2xl font-bold mb-5">:</span>
-          <Unit value={hours}   label="horas" />
-          <span className="text-[#D4AF37]/40 text-2xl font-bold mb-5">:</span>
-          <Unit value={minutes} label="min" />
-          <span className="text-[#D4AF37]/40 text-2xl font-bold mb-5">:</span>
-          <Unit value={seconds} label="seg" />
+
+        {/* Main */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap mb-1">
+            {/* Criticality dot */}
+            <span className="w-2 h-2 rounded-full flex-shrink-0"
+              style={{ backgroundColor: crit.dot }}/>
+            {/* Title */}
+            <span className="text-sm font-semibold text-[#F5F5F5] truncate">{item.titulo}</span>
+            {item.recorrente && (
+              <span className="text-[9px] px-1.5 py-0.5 rounded bg-[#4ADE80]/10 border border-[#4ADE80]/20 text-[#4ADE80] flex-shrink-0">⟳ Recorrente</span>
+            )}
+          </div>
+
+          {/* Badges row */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {/* Account */}
+            <span className="text-[10px] px-1.5 py-0.5 rounded font-medium flex-shrink-0"
+              style={{ color: acct.color, backgroundColor: acct.bg }}>
+              {acct.label}
+            </span>
+            {/* Type */}
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-[#F5F5F5]/40 flex-shrink-0">
+              {item.type}
+            </span>
+            {/* Status */}
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium flex-shrink-0"
+              style={{ color: st.color, backgroundColor: st.bg }}>
+              {st.icon} {st.label}
+            </span>
+            {/* Criticality */}
+            <span className="text-[10px] px-1.5 py-0.5 rounded flex-shrink-0"
+              style={{ color: crit.color, backgroundColor: `${crit.dot}15` }}>
+              ● {crit.label}
+            </span>
+            {/* Time */}
+            <span className="text-[10px] text-[#F5F5F5]/30 flex-shrink-0 ml-auto">
+              <Clock size={9} className="inline mr-0.5"/>{item.time}
+            </span>
+          </div>
+
+          {/* Pipeline bar */}
+          <PipelineBar step={item.pipeline} />
+        </div>
+
+        {/* Expand toggle */}
+        {!forceExpanded && (
+          <button className="text-[#F5F5F5]/20 hover:text-[#F5F5F5]/50 flex-shrink-0 mt-1">
+            {isOpen ? <ChevronUp size={14}/> : <ChevronDown size={14}/>}
+          </button>
+        )}
+      </div>
+
+      {/* Expanded content */}
+      {isOpen && (item.conteudo || item.caption || item.tags?.length) && (
+        <div className="px-3 pb-3 pt-0 border-t border-white/5 space-y-2">
+          {item.conteudo && (
+            <div>
+              <p className="text-[10px] text-[#F5F5F5]/25 uppercase tracking-wider mb-1">Conteúdo / Briefing</p>
+              <p className="text-xs text-[#F5F5F5]/60 leading-relaxed">{item.conteudo}</p>
+            </div>
+          )}
+          {item.caption && (
+            <div>
+              <p className="text-[10px] text-[#F5F5F5]/25 uppercase tracking-wider mb-1">Caption (rascunho)</p>
+              <p className="text-xs text-[#C9A84C]/70 italic leading-relaxed">"{item.caption}"</p>
+            </div>
+          )}
+          {item.tags?.length && (
+            <div className="flex flex-wrap gap-1 pt-1">
+              {item.tags.map(t => (
+                <span key={t} className="text-[9px] px-1.5 py-0.5 rounded-full bg-white/5 text-[#F5F5F5]/30">#{t}</span>
+              ))}
+            </div>
+          )}
         </div>
       )}
-
-      <div className="mt-4 h-1.5 bg-white/5 rounded-full overflow-hidden">
-        <div className="h-full rounded-full bg-gradient-to-r from-[#D4AF37] to-[#F5D06F] transition-all"
-          style={{
-            width: past ? "100%" : `${Math.min(100, ((14 * 86400000 - diff) / (14 * 86400000)) * 100)}%`
-          }}
-        />
-      </div>
     </div>
   );
 }
 
-// ═══════════════════════════════════════════════════════════════
-// REUNIÃO SEMANAL
-// ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════
+// CALENDAR WEEK VIEW
+// ═══════════════════════════════════════════════════════════════════════
 
-function ReuniaoCard() {
+function CalendarWeekView({
+  weekOffset, items, onDayClick,
+}: {
+  weekOffset: number;
+  items: ContentItem[];
+  onDayClick: (date: string) => void;
+}) {
   const today = new Date();
-  const dayOfWeek = today.getDay(); // 0=dom
-  const daysUntilSunday = dayOfWeek === 0 ? 7 : 7 - dayOfWeek;
-  const nextSunday = new Date(today);
-  nextSunday.setDate(today.getDate() + daysUntilSunday);
+  const base  = addDays(startOfWeek(today), weekOffset * 7);
+  const days  = Array.from({ length: 7 }, (_, i) => addDays(base, i));
+
+  // Group items by date
+  const byDate: Record<string, ContentItem[]> = {};
+  for (const item of items) {
+    (byDate[item.date] ??= []).push(item);
+  }
+
+  const monthLabel = (() => {
+    const first = days[0], last = days[6];
+    if (first.getMonth() === last.getMonth())
+      return `${MONTHS_PT[first.getMonth()]} ${first.getFullYear()}`;
+    return `${MONTHS_PT[first.getMonth()]} – ${MONTHS_PT[last.getMonth()]} ${last.getFullYear()}`;
+  })();
 
   return (
-    <div className="bg-[#0D0D0D] border border-[#9B7EC8]/25 rounded-2xl p-5">
-      <div className="flex items-center gap-2 mb-3">
-        <Calendar size={15} className="text-[#9B7EC8]" />
-        <h2 className="text-sm font-bold text-[#F5F5F5]">Reunião Semanal</h2>
-        <span className="ml-auto text-[10px] px-2 py-0.5 rounded-full bg-[#9B7EC8]/10 border border-[#9B7EC8]/25 text-[#9B7EC8]">
-          Recorrente
-        </span>
-      </div>
-      <div className="flex items-center gap-4 flex-wrap">
-        <div>
-          <p className="text-[10px] text-[#F5F5F5]/30 uppercase tracking-wider mb-0.5">Frequência</p>
-          <p className="text-sm text-[#F5F5F5]/80">Todo domingo</p>
-        </div>
-        <div>
-          <p className="text-[10px] text-[#F5F5F5]/30 uppercase tracking-wider mb-0.5">Horário</p>
-          <p className="text-sm text-[#D4AF37]">A definir pelo Yuri</p>
-        </div>
-        <div>
-          <p className="text-[10px] text-[#F5F5F5]/30 uppercase tracking-wider mb-0.5">Próxima</p>
-          <p className="text-sm text-[#F5F5F5]/70">
-            {nextSunday.toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" })}
-          </p>
-        </div>
-        <div>
-          <p className="text-[10px] text-[#F5F5F5]/30 uppercase tracking-wider mb-0.5">Pauta</p>
-          <p className="text-sm text-[#F5F5F5]/50">Retrospectiva semanal dos agentes</p>
-        </div>
+    <div>
+      <p className="text-xs text-[#F5F5F5]/30 text-center mb-2">{monthLabel}</p>
+      <div className="grid grid-cols-7 gap-1">
+        {days.map(day => {
+          const iso      = toISO(day);
+          const dayItems = byDate[iso] ?? [];
+          const isToday  = toISO(today) === iso;
+
+          return (
+            <button key={iso} onClick={() => onDayClick(iso)}
+              className={`flex flex-col items-center gap-1 p-2 rounded-xl border transition-all min-h-[80px] text-left ${
+                isToday
+                  ? "border-[#C9A84C]/40 bg-[#C9A84C]/8"
+                  : dayItems.length
+                  ? "border-white/8 bg-[#0D0D0D] hover:border-[#C9A84C]/20"
+                  : "border-white/5 bg-transparent hover:border-white/10"
+              }`}>
+              {/* Day header */}
+              <div className="flex flex-col items-center">
+                <span className="text-[9px] text-[#F5F5F5]/30 uppercase">{DAYS_PT[day.getDay()]}</span>
+                <span className={`text-sm font-bold leading-tight ${
+                  isToday ? "text-[#C9A84C]" : "text-[#F5F5F5]/80"
+                }`}>{day.getDate()}</span>
+              </div>
+
+              {/* Activity badges */}
+              {dayItems.length > 0 && (
+                <div className="flex flex-wrap gap-0.5 justify-center w-full">
+                  {dayItems.slice(0, 4).map(item => {
+                    const cfg = CRITICALITY_CFG[item.criticality];
+                    const tc  = TYPE_CFG[item.type];
+                    return (
+                      <div key={item.id}
+                        className="w-4 h-4 rounded flex items-center justify-center text-[8px]"
+                        style={{ backgroundColor: `${tc.color}25`, color: tc.color }}
+                        title={item.titulo}>
+                        {item.type === "Feed Post" ? "📸" :
+                         item.type === "Story"     ? "◎"  :
+                         item.type === "Reunião"   ? "👥" :
+                         item.type === "Reel"      ? "🎬" : "•"}
+                      </div>
+                    );
+                  })}
+                  {dayItems.length > 4 && (
+                    <div className="w-4 h-4 rounded bg-white/5 flex items-center justify-center text-[8px] text-[#F5F5F5]/30">
+                      +{dayItems.length - 4}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Criticality indicator */}
+              {dayItems.some(i => i.criticality === "Crítico" || i.criticality === "Urgente") && (
+                <div className="w-1.5 h-1.5 rounded-full bg-[#EF4444] mt-auto"/>
+              )}
+            </button>
+          );
+        })}
       </div>
     </div>
   );
 }
 
-// ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════
+// COUNTDOWN
+// ═══════════════════════════════════════════════════════════════════════
+
+function Countdown() {
+  const [now, setNow] = useState(Date.now());
+  const target = new Date(2026, 2, 25, 9, 0, 0).getTime();
+
+  // Update every second using useEffect-free approach would require state
+  // Using a ref-based tick won't work in server; keep state + simple effect
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const tick = useCallback(() => setNow(Date.now()), []);
+
+  // Manual interval via useState with setTimeout to avoid stale closures
+  const [, forceUpdate] = useState(0);
+  if (typeof window !== "undefined") {
+    // Lazy one-time setup via module-level or just trigger rerender
+  }
+
+  const diff = Math.max(0, target - now);
+  const days    = Math.floor(diff / 86400000);
+  const hours   = Math.floor((diff % 86400000) / 3600000);
+  const minutes = Math.floor((diff % 3600000) / 60000);
+  const seconds = Math.floor((diff % 60000) / 1000);
+
+  // Update every second
+  if (typeof window !== "undefined") {
+    setTimeout(() => setNow(Date.now()), 1000);
+  }
+
+  const U = ({ v, l }: { v: number; l: string }) => (
+    <div className="flex flex-col items-center">
+      <div className="bg-[#111] border border-[#C9A84C]/20 rounded-lg px-3 py-2 min-w-[52px] text-center">
+        <span className="text-xl font-bold font-mono text-[#C9A84C]">{String(v).padStart(2,"0")}</span>
+      </div>
+      <span className="text-[9px] text-[#F5F5F5]/25 mt-1 uppercase tracking-wider">{l}</span>
+    </div>
+  );
+
+  return (
+    <div className="bg-[#0D0D0D] border border-[#C9A84C]/15 rounded-2xl p-5">
+      <div className="flex items-center gap-2 mb-1">
+        <Timer size={14} className="text-[#C9A84C]"/>
+        <span className="text-sm font-bold text-[#F5F5F5]">Lançamento E-book</span>
+        <span className="ml-auto text-[10px] text-[#F5F5F5]/30">25/03 · 09:00</span>
+      </div>
+      <p className="text-xs text-[#F5F5F5]/40 mb-4">🚀 Panteão Digital — lançamento oficial</p>
+      {diff <= 0 ? (
+        <p className="text-center text-xl font-bold text-[#4ADE80]">🎉 LANÇADO!</p>
+      ) : (
+        <div className="flex justify-center gap-2">
+          <U v={days} l="dias"/> <span className="text-[#C9A84C]/30 text-xl font-bold self-start mt-2">:</span>
+          <U v={hours} l="h"/> <span className="text-[#C9A84C]/30 text-xl font-bold self-start mt-2">:</span>
+          <U v={minutes} l="min"/> <span className="text-[#C9A84C]/30 text-xl font-bold self-start mt-2">:</span>
+          <U v={seconds} l="seg"/>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════
 // MAIN PAGE
-// ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════
 
 export default function AgendaPage() {
-  const published  = POSTS.filter(p => p.status === "publicado").length;
-  const scheduled  = POSTS.filter(p => p.status === "agendado").length;
+  const [weekOffset, setWeekOffset] = useState(0);
+  const [selectedDay, setSelectedDay] = useState<string | null>(null);
+  const [filterAccount, setFilterAccount]     = useState<Account | "">("");
+  const [filterCriticality, setFilterCriticality] = useState<Criticality | "">("");
+  const [filterStatus, setFilterStatus]       = useState<Status | "">("");
+  const [filterType, setFilterType]           = useState<ContentType | "">("");
+  const [allExpanded, setAllExpanded]         = useState(false);
+
+  const filtered = useMemo(() => {
+    return ITEMS.filter(item => {
+      if (filterAccount     && item.account      !== filterAccount)     return false;
+      if (filterCriticality && item.criticality  !== filterCriticality) return false;
+      if (filterStatus      && item.status       !== filterStatus)      return false;
+      if (filterType        && item.type         !== filterType)        return false;
+      return true;
+    });
+  }, [filterAccount, filterCriticality, filterStatus, filterType]);
+
+  const dayItems = useMemo(() =>
+    selectedDay ? filtered.filter(i => i.date === selectedDay) : filtered,
+    [selectedDay, filtered]
+  );
+
+  // Stats
+  const published = ITEMS.filter(i => i.status === "Publicado").length;
+  const scheduled = ITEMS.filter(i => i.status === "Agendado").length;
+  const pending   = ITEMS.filter(i => i.status === "Pendente Aprovação").length;
+  const drafts    = ITEMS.filter(i => i.status === "Rascunho").length;
+
+  const clearFilters = () => {
+    setFilterAccount(""); setFilterCriticality("");
+    setFilterStatus(""); setFilterType(""); setSelectedDay(null);
+  };
+
+  const hasFilters = filterAccount || filterCriticality || filterStatus || filterType || selectedDay;
+
+  // Sort items by date+time
+  const sortedItems = [...dayItems].sort((a, b) =>
+    `${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`)
+  );
+
+  // Group by date for the list view
+  const groupedByDate = useMemo(() => {
+    const groups: Record<string, ContentItem[]> = {};
+    for (const item of sortedItems) {
+      (groups[item.date] ??= []).push(item);
+    }
+    return groups;
+  }, [sortedItems]);
+
+  function formatDateHeader(iso: string) {
+    const d = new Date(iso + "T12:00:00");
+    const today = toISO(new Date());
+    const tomorrow = toISO(addDays(new Date(), 1));
+    if (iso === today)    return "Hoje";
+    if (iso === tomorrow) return "Amanhã";
+    return d.toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" });
+  }
 
   return (
-    <div className="flex-1 min-h-screen p-6 max-w-5xl mx-auto">
-      {/* ── Page Header ── */}
-      <div className="mb-8">
-        <div className="flex items-center gap-3 mb-1">
-          <Calendar size={18} className="text-[#D4AF37]" />
-          <h1 className="text-xl font-bold text-[#F5F5F5]">Agenda do Panteão</h1>
+    <div className="flex-1 min-h-screen p-6" style={{ background: "#08080f" }}>
+      <div className="max-w-5xl mx-auto">
+
+        {/* ── Page Header ── */}
+        <div className="flex items-start justify-between gap-4 mb-6 flex-wrap">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <Calendar size={18} className="text-[#C9A84C]"/>
+              <h1 className="text-xl font-bold text-[#F5F5F5]">Agenda de Conteúdo</h1>
+            </div>
+            <p className="text-sm text-[#F5F5F5]/40">
+              {published} publicados · {scheduled} agendados · {pending} aguardando aprovação · {drafts} rascunhos
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setAllExpanded(e => !e)}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-[#111] border border-white/10 rounded-lg text-xs text-[#F5F5F5]/50 hover:text-[#F5F5F5]/80 transition-colors">
+              {allExpanded ? <><Minimize2 size={12}/> Minimizar tudo</> : <><Maximize2 size={12}/> Expandir tudo</>}
+            </button>
+          </div>
         </div>
-        <p className="text-[#F5F5F5]/40 text-sm">
-          {published} publicados · {scheduled} agendados · lançamento em 25/03
-        </p>
-      </div>
 
-      {/* ── Top cards row ── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-        <Countdown />
-        <ReuniaoCard />
-      </div>
+        {/* ── Stats strip ── */}
+        <div className="grid grid-cols-4 gap-3 mb-6">
+          {[
+            { label:"Publicados",     v:published, color:"#4ADE80" },
+            { label:"Agendados",      v:scheduled, color:"#C9A84C" },
+            { label:"Pend. Aprovação",v:pending,   color:"#F59E0B" },
+            { label:"Rascunhos",      v:drafts,    color:"#71717A" },
+          ].map(s => (
+            <div key={s.label} className="bg-[#0D0D0D] border border-white/5 rounded-xl p-3 text-center">
+              <p className="text-xl font-bold" style={{color:s.color}}>{s.v}</p>
+              <p className="text-[10px] text-[#F5F5F5]/30 mt-0.5">{s.label}</p>
+            </div>
+          ))}
+        </div>
 
-      {/* ── Stats bar ── */}
-      <div className="grid grid-cols-3 gap-3 mb-8">
-        {[
-          { label: "Publicados",  value: published,  color: "#4ADE80", icon: <CheckCircle size={14}/> },
-          { label: "Agendados",   value: scheduled,  color: "#D4AF37", icon: <Clock size={14}/> },
-          { label: "Pendentes",   value: POSTS.filter(p=>p.status==="pendente").length, color: "#71717A", icon: <Hourglass size={14}/> },
-        ].map(s => (
-          <div key={s.label} className="bg-[#0D0D0D] border border-[#D4AF37]/8 rounded-xl p-4 flex items-center gap-3">
-            <span style={{color:s.color}}>{s.icon}</span>
-            <div>
-              <p className="text-xl font-bold" style={{color:s.color}}>{s.value}</p>
-              <p className="text-[10px] text-[#F5F5F5]/30">{s.label}</p>
+        {/* ── Calendar (2 weeks) ── */}
+        <div className="bg-[#0D0D0D] border border-[#C9A84C]/10 rounded-2xl p-4 mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <span className="text-sm font-semibold text-[#F5F5F5]">Calendário</span>
+            <div className="flex items-center gap-2">
+              {selectedDay && (
+                <button onClick={() => setSelectedDay(null)}
+                  className="text-xs text-[#C9A84C]/60 hover:text-[#C9A84C] px-2 py-1 rounded border border-[#C9A84C]/20 transition-colors">
+                  ✕ Limpar dia
+                </button>
+              )}
+              <button onClick={() => setWeekOffset(0)}
+                className="text-[10px] text-[#F5F5F5]/30 hover:text-[#F5F5F5]/60 px-2 py-1 transition-colors">
+                Hoje
+              </button>
+              <button onClick={() => setWeekOffset(w => w - 1)}
+                className="p-1 rounded hover:bg-white/5 text-[#F5F5F5]/40 hover:text-[#F5F5F5]/70 transition-colors">
+                <ChevronLeft size={16}/>
+              </button>
+              <button onClick={() => setWeekOffset(w => w + 1)}
+                className="p-1 rounded hover:bg-white/5 text-[#F5F5F5]/40 hover:text-[#F5F5F5]/70 transition-colors">
+                <ChevronRight size={16}/>
+              </button>
             </div>
           </div>
-        ))}
-      </div>
 
-      {/* ══════════════════════════════════════════════════════ */}
-      {/* POSTS AGENDADOS                                      */}
-      {/* ══════════════════════════════════════════════════════ */}
-      <section className="mb-10">
-        <SectionHeader icon={<Instagram size={16}/>} title="Posts Agendados" count={POSTS.length} />
-
-        <div className="bg-[#0D0D0D] border border-[#D4AF37]/10 rounded-2xl overflow-hidden">
-          {/* Table header */}
-          <div className="grid grid-cols-[48px_1fr_2fr_120px_80px_110px] gap-4 px-5 py-3 bg-[#111] border-b border-[#D4AF37]/10 text-[10px] text-[#F5F5F5]/30 uppercase tracking-wider font-semibold">
-            <span>#</span>
-            <span>Post</span>
-            <span>Conteúdo</span>
-            <span>Data</span>
-            <span>Horário</span>
-            <span>Status</span>
+          {/* Two weeks */}
+          <div className="space-y-4">
+            <CalendarWeekView weekOffset={weekOffset}   items={ITEMS} onDayClick={d => setSelectedDay(d === selectedDay ? null : d)} />
+            <div className="border-t border-white/5"/>
+            <CalendarWeekView weekOffset={weekOffset+1} items={ITEMS} onDayClick={d => setSelectedDay(d === selectedDay ? null : d)} />
           </div>
 
-          {POSTS.map((post, i) => {
-            const isPast = parseDate(post.data, post.horario) < new Date();
-            const color = TIPO_COLOR[post.tipo];
-            return (
-              <div key={post.id}
-                className={`grid grid-cols-[48px_1fr_2fr_120px_80px_110px] gap-4 px-5 py-4 border-b border-[#D4AF37]/5 last:border-0 items-center transition-colors hover:bg-white/[0.02] ${
-                  post.status === "publicado" ? "opacity-60" : ""
-                }`}>
-                {/* # */}
-                <div className="flex items-center justify-center w-7 h-7 rounded-lg text-xs font-bold font-mono"
-                  style={{ backgroundColor: `${color}20`, color, border: `1px solid ${color}30` }}>
-                  {TIPO_ICON[post.tipo]}
-                </div>
-
-                {/* Título */}
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-[#F5F5F5] truncate">{post.titulo}</p>
-                  <p className="text-[10px] text-[#F5F5F5]/30 capitalize mt-0.5">{post.tipo} · {post.plataforma}</p>
-                </div>
-
-                {/* Conteúdo */}
-                <p className="text-xs text-[#F5F5F5]/50 leading-relaxed line-clamp-2">{post.conteudo}</p>
-
-                {/* Data */}
-                <div className="flex items-center gap-1.5">
-                  <Calendar size={11} className="text-[#F5F5F5]/25 flex-shrink-0"/>
-                  <span className={`text-xs ${isPast && post.status !== "publicado" ? "text-[#F87171]" : "text-[#F5F5F5]/60"}`}>
-                    {post.data}
-                  </span>
-                </div>
-
-                {/* Horário */}
-                <div className="flex items-center gap-1">
-                  <Clock size={11} className="text-[#F5F5F5]/25 flex-shrink-0"/>
-                  <span className="text-xs text-[#F5F5F5]/60">{post.horario}</span>
-                </div>
-
-                {/* Status */}
-                <StatusBadge status={post.status}/>
-              </div>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* ══════════════════════════════════════════════════════ */}
-      {/* STORIES AGENDADOS                                    */}
-      {/* ══════════════════════════════════════════════════════ */}
-      <section className="mb-10">
-        <SectionHeader
-          icon={<BookOpen size={16}/>}
-          title="Stories Agendados"
-          count={STORIES.length}
-          color="#06B6D4"
-        />
-
-        <div className="bg-[#0D0D0D] border border-[#06B6D4]/10 rounded-2xl overflow-hidden">
-          {/* Table header */}
-          <div className="grid grid-cols-[120px_1fr_80px_110px] gap-4 px-5 py-3 bg-[#111] border-b border-[#06B6D4]/10 text-[10px] text-[#F5F5F5]/30 uppercase tracking-wider font-semibold">
-            <span>Data</span>
-            <span>Tema</span>
-            <span>Horário</span>
-            <span>Status</span>
+          {/* Legend */}
+          <div className="flex items-center gap-4 mt-4 flex-wrap">
+            <span className="text-[9px] text-[#F5F5F5]/20 uppercase tracking-wider">Legenda:</span>
+            {(["Feed Post","Story","Reunião"] as ContentType[]).map(t => (
+              <span key={t} className="flex items-center gap-1 text-[10px]"
+                style={{color: TYPE_CFG[t].color}}>
+                <span>{t === "Feed Post" ? "📸" : t === "Story" ? "◎" : "👥"}</span> {t}
+              </span>
+            ))}
+            <span className="flex items-center gap-1 text-[10px] text-[#EF4444]">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#EF4444] inline-block"/> Crítico
+            </span>
           </div>
-
-          {STORIES.map(story => {
-            const isPast = parseDate(story.data, story.horario) < new Date();
-            return (
-              <div key={story.id}
-                className={`grid grid-cols-[120px_1fr_80px_110px] gap-4 px-5 py-4 border-b border-[#06B6D4]/5 last:border-0 items-center transition-colors hover:bg-white/[0.02] ${
-                  story.status === "publicado" ? "opacity-60" : ""
-                }`}>
-                <div className="flex items-center gap-1.5">
-                  <Calendar size={11} className="text-[#F5F5F5]/25"/>
-                  <span className={`text-xs ${isPast && story.status !== "publicado" ? "text-[#F87171]" : "text-[#F5F5F5]/60"}`}>
-                    {story.data}
-                  </span>
-                </div>
-                <p className="text-sm text-[#F5F5F5]/80 truncate">{story.tema}</p>
-                <div className="flex items-center gap-1">
-                  <Clock size={11} className="text-[#F5F5F5]/25"/>
-                  <span className="text-xs text-[#F5F5F5]/60">{story.horario}</span>
-                </div>
-                <StatusBadge status={story.status}/>
-              </div>
-            );
-          })}
         </div>
-      </section>
 
-      {/* ── Footer note ── */}
-      <div className="border border-dashed border-[#D4AF37]/10 rounded-xl p-4 text-center">
-        <p className="text-[#F5F5F5]/25 text-xs">
-          Agenda atualizada manualmente · Para integrar com Google Calendar, acionar Hera.
+        {/* ── Filters ── */}
+        <div className="flex flex-wrap gap-2 mb-5 items-center">
+          <ChevronsUpDown size={12} className="text-[#F5F5F5]/30"/>
+
+          <Select value={filterAccount} onChange={v => setFilterAccount(v as Account | "")}
+            placeholder="Todas as contas">
+            <option value="">Todas as contas</option>
+            {(Object.keys(ACCOUNT_CFG) as Account[]).map(a => <option key={a} value={a}>{a}</option>)}
+          </Select>
+
+          <Select value={filterCriticality} onChange={v => setFilterCriticality(v as Criticality | "")}
+            placeholder="Criticidade">
+            <option value="">Toda criticidade</option>
+            {(Object.keys(CRITICALITY_CFG) as Criticality[]).map(c => <option key={c} value={c}>{c}</option>)}
+          </Select>
+
+          <Select value={filterStatus} onChange={v => setFilterStatus(v as Status | "")}
+            placeholder="Status">
+            <option value="">Todos os status</option>
+            {(Object.keys(STATUS_CFG) as Status[]).map(s => <option key={s} value={s}>{s}</option>)}
+          </Select>
+
+          <Select value={filterType} onChange={v => setFilterType(v as ContentType | "")}
+            placeholder="Tipo">
+            <option value="">Todos os tipos</option>
+            {(Object.keys(TYPE_CFG) as ContentType[]).map(t => <option key={t} value={t}>{t}</option>)}
+          </Select>
+
+          {hasFilters && (
+            <button onClick={clearFilters}
+              className="text-xs text-[#C9A84C]/50 hover:text-[#C9A84C] transition-colors">
+              Limpar filtros ×
+            </button>
+          )}
+
+          <span className="ml-auto text-xs text-[#F5F5F5]/25">{sortedItems.length} item{sortedItems.length !== 1 ? "s" : ""}</span>
+        </div>
+
+        {/* ── Selected day banner ── */}
+        {selectedDay && (
+          <div className="flex items-center gap-2 mb-4 px-4 py-2 bg-[#C9A84C]/8 border border-[#C9A84C]/20 rounded-xl">
+            <Calendar size={13} className="text-[#C9A84C]"/>
+            <span className="text-sm text-[#C9A84C]">
+              {formatDateHeader(selectedDay)} — {dayItems.length} item{dayItems.length !== 1 ? "s" : ""}
+            </span>
+          </div>
+        )}
+
+        {/* ── Content list ── */}
+        <div className="space-y-6">
+          {Object.keys(groupedByDate).length === 0 ? (
+            <div className="text-center py-12 text-[#F5F5F5]/25 text-sm">
+              Nenhum conteúdo encontrado para os filtros selecionados.
+            </div>
+          ) : (
+            Object.entries(groupedByDate).map(([date, items]) => (
+              <div key={date}>
+                {/* Date group header */}
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="text-xs font-semibold text-[#C9A84C] capitalize">
+                    {formatDateHeader(date)}
+                  </span>
+                  <span className="text-[10px] text-[#F5F5F5]/20">
+                    {new Date(date + "T12:00:00").toLocaleDateString("pt-BR", { day:"2-digit", month:"long", year:"numeric" })}
+                  </span>
+                  <div className="flex-1 h-px bg-[#C9A84C]/10"/>
+                  <span className="text-[10px] text-[#F5F5F5]/20">{items.length} item{items.length > 1 ? "s" : ""}</span>
+                </div>
+
+                <div className="space-y-2">
+                  {items.map(item => (
+                    <ContentCard key={item.id} item={item} forceExpanded={allExpanded || undefined}/>
+                  ))}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* ── Countdown ── */}
+        <div className="mt-8">
+          <Countdown/>
+        </div>
+
+        {/* ── @stm.capital alert ── */}
+        <div className="mt-4 flex items-start gap-3 p-4 bg-[#F59E0B]/8 border border-[#F59E0B]/20 rounded-xl">
+          <AlertCircle size={16} className="text-[#F59E0B] flex-shrink-0 mt-0.5"/>
+          <div>
+            <p className="text-sm font-semibold text-[#F59E0B]">@stm.capital — Conta sem estratégia</p>
+            <p className="text-xs text-[#F5F5F5]/40 mt-1">
+              Conta parada. Necessita calendário editorial, primeiros 4 posts do mês e definição de tom de voz. Acionar Afrodite.
+            </p>
+          </div>
+        </div>
+
+        {/* ── Reunião recorrente ── */}
+        <div className="mt-4 flex items-center gap-3 p-4 bg-[#4ADE80]/5 border border-[#4ADE80]/15 rounded-xl">
+          <Users size={15} className="text-[#4ADE80] flex-shrink-0"/>
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-[#F5F5F5]">Reunião Semanal</p>
+            <p className="text-xs text-[#F5F5F5]/40">Todo domingo às 19h BRT · Retrospectiva dos agentes</p>
+          </div>
+          <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#4ADE80]/10 border border-[#4ADE80]/20 text-[#4ADE80]">⟳ Recorrente</span>
+        </div>
+
+        {/* Footer */}
+        <p className="text-center text-[10px] text-[#F5F5F5]/15 mt-8">
+          Agenda atualizada manualmente · Para integrar com Google Calendar, acionar Hera
         </p>
       </div>
     </div>
+  );
+}
+
+// ─── Select helper ────────────────────────────────────────────────────
+
+function Select({ value, onChange, placeholder, children }: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <select
+      value={value}
+      onChange={e => onChange(e.target.value)}
+      className="bg-[#0D0D0D] border border-white/8 rounded-lg px-3 py-1.5 text-xs text-[#F5F5F5]/60 focus:outline-none focus:border-[#C9A84C]/30 transition-colors"
+    >
+      {children}
+    </select>
   );
 }
