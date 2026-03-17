@@ -10,7 +10,7 @@ import { format, formatDistanceToNow, isToday, subMinutes, subHours } from "date
 import { ptBR } from "date-fns/locale";
 import { RefreshCw, CheckCircle2, Hourglass, Activity, ChevronDown, ChevronUp } from "lucide-react";
 
-const REFRESH_INTERVAL_MS = 15 * 60 * 1000; // 15 minutos
+const REFRESH_INTERVAL_MS = 5 * 60 * 1000; // 5 minutos (fallback + Realtime ativo)
 
 interface DashboardData {
   agents: Agent[];
@@ -137,6 +137,31 @@ export default function DashboardPage() {
     const t = setInterval(() => setCountdown(c => Math.max(0, c - 1)), 1000);
     return () => clearInterval(t);
   }, []);
+
+  // Supabase Realtime — atualiza instantaneamente quando qualquer agente modifica tasks
+  useEffect(() => {
+    const channel = supabase
+      .channel('dashboard-realtime')
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'tasks' },
+        (payload) => {
+          console.log('[Realtime] Task atualizada:', payload);
+          load(true); // Recarrega dados quando houver mudança
+        }
+      )
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'knowledge' },
+        (payload) => {
+          console.log('[Realtime] Knowledge atualizado:', payload);
+          load(true);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [load]);
 
   const today = format(new Date(), "EEEE, d 'de' MMMM 'de' yyyy", { locale: ptBR });
 
