@@ -14,6 +14,8 @@ const CRED_CODES = [
   "CRED-ELEVENLABS",
   "CRED-NOTION",
   "CRED-GDRIVE",
+  "CRED-CLERK-FRAMEAGENT",
+  "CRED-CF-FRAMEAGENT",
   // Also fetch legacy KNW codes
   "KNW-022", // Meta Graph API STM Capital
   "KNW-023", // fal.ai
