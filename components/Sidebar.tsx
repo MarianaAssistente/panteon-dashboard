@@ -91,7 +91,7 @@ export default function Sidebar() {
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 p-4 space-y-1">
+        <nav className="flex-1 p-4 space-y-1 overflow-y-auto" style={{ scrollbarWidth: "thin", scrollbarColor: "rgba(212,175,55,0.25) transparent" }}>
           {navItems.map((item) => {
             const active = pathname === item.href;
             return (
