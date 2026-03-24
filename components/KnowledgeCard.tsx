@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Copy, Check, ExternalLink } from "lucide-react";
+import { Copy, Check, ExternalLink, Edit2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -37,7 +37,12 @@ const IMPORTANCE_STYLES: Record<string, string> = {
   baixo:   "border-gray-700 text-gray-500",
 };
 
-export default function KnowledgeCard({ item }: { item: KnowledgeItem }) {
+interface KnowledgeCardProps {
+  item: KnowledgeItem;
+  onEdit?: (item: KnowledgeItem) => void;
+}
+
+export default function KnowledgeCard({ item, onEdit }: KnowledgeCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -49,6 +54,11 @@ export default function KnowledgeCard({ item }: { item: KnowledgeItem }) {
     navigator.clipboard.writeText(item.content);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleEdit = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onEdit?.(item);
   };
 
   const timeAgo = formatDistanceToNow(new Date(item.updated_at || item.created_at), {
@@ -74,13 +84,24 @@ export default function KnowledgeCard({ item }: { item: KnowledgeItem }) {
             {item.importance}
           </span>
         </div>
-        <button
-          onClick={handleCopy}
-          className="shrink-0 text-[#F5F5F5]/30 hover:text-[#D4AF37] transition-colors"
-          title="Copiar conteúdo"
-        >
-          {copied ? <Check size={14} className="text-green-400" /> : <Copy size={14} />}
-        </button>
+        <div className="flex items-center gap-2 shrink-0">
+          {onEdit && (
+            <button
+              onClick={handleEdit}
+              className="text-[#F5F5F5]/30 hover:text-[#D4AF37] transition-colors"
+              title="Editar"
+            >
+              <Edit2 size={14} />
+            </button>
+          )}
+          <button
+            onClick={handleCopy}
+            className="text-[#F5F5F5]/30 hover:text-[#D4AF37] transition-colors"
+            title="Copiar conteúdo"
+          >
+            {copied ? <Check size={14} className="text-green-400" /> : <Copy size={14} />}
+          </button>
+        </div>
       </div>
 
       {/* Title */}

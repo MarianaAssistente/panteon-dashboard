@@ -9,12 +9,14 @@ interface KnowledgeModalProps {
   open: boolean;
   onClose: () => void;
   onSaved: (item: KnowledgeItem) => void;
+  onUpdated?: (item: KnowledgeItem) => void;
+  editItem?: KnowledgeItem;
 }
 
 const CATEGORIES = ["credencial", "decisão", "projeto", "processo", "configuração", "contato", "fato"];
 const IMPORTANCES = ["crítico", "alto", "normal", "baixo"];
 
-export default function KnowledgeModal({ open, onClose, onSaved }: KnowledgeModalProps) {
+export default function KnowledgeModal({ open, onClose, onSaved, onUpdated, editItem }: KnowledgeModalProps) {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [category, setCategory] = useState("fato");
@@ -25,13 +27,27 @@ export default function KnowledgeModal({ open, onClose, onSaved }: KnowledgeModa
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
+  const isEdit = !!editItem;
+
   useEffect(() => {
     if (open) {
       supabase.from("projects").select("code").then(({ data }) => {
         if (data) setProjectCodes(data.map((p: { code: string }) => p.code).filter(Boolean));
       });
+      if (editItem) {
+        setTitle(editItem.title);
+        setContent(editItem.content);
+        setCategory(editItem.category);
+        setImportance(editItem.importance);
+        setTagsInput((editItem.tags ?? []).join(", "));
+        setRelatedProject(editItem.related_project_code ?? "");
+      } else {
+        setTitle(""); setContent(""); setCategory("fato"); setImportance("normal");
+        setTagsInput(""); setRelatedProject("");
+      }
+      setError("");
     }
-  }, [open]);
+  }, [open, editItem]);
 
   const handleSave = async () => {
     if (!title.trim() || !content.trim()) {
@@ -42,27 +58,40 @@ export default function KnowledgeModal({ open, onClose, onSaved }: KnowledgeModa
     setError("");
 
     const tags = tagsInput.split(",").map((t) => t.trim()).filter(Boolean);
+    const payload = {
+      title: title.trim(),
+      content: content.trim(),
+      category,
+      importance,
+      tags,
+      related_project_code: relatedProject || null,
+    };
 
-    const { data, error: err } = await supabase
-      .from("knowledge")
-      .insert({
-        title: title.trim(),
-        content: content.trim(),
-        category,
-        importance,
-        tags,
-        related_project_code: relatedProject || null,
-      })
-      .select("*")
-      .single();
-
+    try {
+      if (isEdit && editItem) {
+        const res = await fetch("/api/knowledge", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: editItem.id, ...payload }),
+        });
+        const data = await res.json();
+        if (!res.ok) { setError(data.error ?? "Erro ao salvar."); setSaving(false); return; }
+        onUpdated?.(data as KnowledgeItem);
+      } else {
+        const res = await fetch("/api/knowledge", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (!res.ok) { setError(data.error ?? "Erro ao salvar."); setSaving(false); return; }
+        onSaved(data as KnowledgeItem);
+      }
+      onClose();
+    } catch (e: unknown) {
+      setError(String(e));
+    }
     setSaving(false);
-    if (err) { setError(err.message); return; }
-    onSaved(data as KnowledgeItem);
-    // reset
-    setTitle(""); setContent(""); setCategory("fato"); setImportance("normal");
-    setTagsInput(""); setRelatedProject("");
-    onClose();
   };
 
   if (!open) return null;
@@ -72,7 +101,9 @@ export default function KnowledgeModal({ open, onClose, onSaved }: KnowledgeModa
       <div className="bg-[#111] border border-[#D4AF37]/20 rounded-2xl w-full max-w-lg shadow-2xl flex flex-col gap-5 p-6">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <h2 className="text-[#D4AF37] font-semibold text-base tracking-wide">+ Novo Conhecimento</h2>
+          <h2 className="text-[#D4AF37] font-semibold text-base tracking-wide">
+            {isEdit ? "Editar Conhecimento" : "+ Novo Conhecimento"}
+          </h2>
           <button onClick={onClose} className="text-[#F5F5F5]/30 hover:text-[#F5F5F5] transition-colors">
             <X size={18} />
           </button>
@@ -154,7 +185,7 @@ export default function KnowledgeModal({ open, onClose, onSaved }: KnowledgeModa
           disabled={saving}
           className="w-full py-2.5 rounded-xl bg-[#D4AF37]/10 border border-[#D4AF37]/30 text-[#D4AF37] font-semibold text-sm hover:bg-[#D4AF37]/20 transition-colors disabled:opacity-50"
         >
-          {saving ? "Salvando…" : "Salvar Conhecimento"}
+          {saving ? "Salvando…" : isEdit ? "Salvar Alterações" : "Salvar Conhecimento"}
         </button>
       </div>
     </div>
