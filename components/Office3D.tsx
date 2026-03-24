@@ -268,6 +268,7 @@ interface RoomProps {
   isFemale?: boolean;
   charScale?: number;
   bookshelf?: boolean;
+  hideCharacter?: boolean;
 }
 
 function Room({
@@ -285,6 +286,7 @@ function Room({
   isFemale = false,
   charScale = 1.0,
   bookshelf = false,
+  hideCharacter = false,
 }: RoomProps) {
   const statusColor = STATUS_COLORS[status] || "#9ca3af";
   const half = size / 2;
@@ -444,16 +446,18 @@ function Room({
         </div>
       </Html>
 
-      {/* Personagem Voxel */}
-      <VoxelCharacter
-        skinColor="#F5CBA7"
-        bodyColor={bodyColor}
-        hairColor={hairColor}
-        isFemale={isFemale}
-        status={status}
-        position={[0, 0.45, -half + 3.5]}
-        scale={charScale * 2.5}
-      />
+      {/* Personagem Voxel — oculto durante delegação */}
+      {!hideCharacter && (
+        <VoxelCharacter
+          skinColor="#F5CBA7"
+          bodyColor={bodyColor}
+          hairColor={hairColor}
+          isFemale={isFemale}
+          status={status}
+          position={[0, 0.45, -half + 3.5]}
+          scale={charScale * 2.5}
+        />
+      )}
 
       {/* Nome do agente */}
       <Html position={[0, wallH + 2.5, 0]} center>
@@ -611,6 +615,7 @@ function OfficeScene({ agents, onSelect, delegation, onDelegationComplete }: {
             hairColor="#5a2a10"
             isFemale
             charScale={1.2}
+            hideCharacter={delegation?.active === true}
           />
         );
       })()}
