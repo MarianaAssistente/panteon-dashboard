@@ -62,6 +62,7 @@ export default function Sidebar() {
     { href: "/projects",   label: "Projetos",        icon: "□", lucideIcon: <FolderOpen size={14} />, badge: activeProjectsCount || undefined },
     { href: "/knowledge",  label: "Conhecimento",    icon: "🧠", lucideIcon: <BookOpen size={14} /> },
     { href: "/approvals",  label: "Aprovações",      icon: "◇", badge: pendingCount },
+    { href: "/analytics",  label: "Analytics",       icon: "📊" },
     { href: "/organograma", label: "Organograma",     icon: "◉", lucideIcon: <Network size={14} /> },
     { href: "/agenda",       label: "Agenda",          icon: "◌", lucideIcon: <CalendarDays size={14} /> },
     { href: "/credentials", label: "Credenciais",     icon: "◌", lucideIcon: <Shield size={14} /> },
