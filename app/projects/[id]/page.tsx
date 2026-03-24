@@ -76,7 +76,7 @@ const DOC_CATS: Record<string,{label:string;icon:React.ReactNode;color:string}> 
 };
 const FILE_ICONS: Record<string,string> = {doc:"📄",slide:"📊",sheet:"📈",pdf:"📋",link:"🔗",video:"🎥"};
 
-type Tab = "gantt"|"atividades"|"documentos";
+type Tab = "timeline"|"gantt"|"atividades"|"documentos";
 
 // ═══════════════════════════════════════════════════════════════
 // GANTT HELPERS
@@ -425,7 +425,7 @@ export default function ProjectDetailPage() {
   const [tasks, setTasks]         = useState<Task[]>([]);
   const [docs, setDocs]           = useState<Doc[]>([]);
   const [loading, setLoading]     = useState(true);
-  const [tab, setTab]             = useState<Tab>("gantt");
+  const [tab, setTab]             = useState<Tab>("timeline");
   const [tablesOk, setTablesOk]   = useState(true);
   const [doneOpen, setDoneOpen]   = useState(false);
   const [isPrinting, setIsPrinting] = useState(false);
@@ -433,7 +433,16 @@ export default function ProjectDetailPage() {
   const load = useCallback(async()=>{
     if (!id) return;
     setLoading(true);
-    const {data:proj} = await supabase.from("projects").select("*").eq("id",id).single();
+    // Support both UUID and project code
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+    let proj: any = null;
+    if (isUUID) {
+      const {data} = await supabase.from("projects").select("*").eq("id",id).single();
+      proj = data;
+    } else {
+      const {data} = await supabase.from("projects").select("*").eq("code",id).single();
+      proj = data;
+    }
     if (!proj){setLoading(false);return;}
     setProject(proj as Project);
 
@@ -688,12 +697,12 @@ export default function ProjectDetailPage() {
 
           {/* Tabs */}
           <div className="flex px-6 max-w-7xl mx-auto border-t border-[#D4AF37]/10">
-            {(["gantt","atividades","documentos"] as Tab[]).map(t=>(
+            {(["timeline","gantt","atividades","documentos"] as Tab[]).map(t=>(
               <button key={t} onClick={()=>setTab(t)}
                 className={`px-5 py-3 text-xs font-medium transition-colors border-b-2 -mb-px ${
                   tab===t?"text-[#D4AF37] border-[#D4AF37]":"text-[#F5F5F5]/40 border-transparent hover:text-[#F5F5F5]/70"
                 }`}>
-                {t==="gantt"?"📅 Gantt":t==="atividades"?"✅ Atividades":"📁 Documentos"}
+                {t==="timeline"?"🗂️ Timeline":t==="gantt"?"📅 Gantt":t==="atividades"?"✅ Atividades":"📁 Documentos"}
               </button>
             ))}
           </div>
@@ -703,6 +712,11 @@ export default function ProjectDetailPage() {
         {/* CONTENT                                           */}
         {/* ═══════════════════════════════════════════════════ */}
         <div className="px-6 py-6 max-w-7xl mx-auto">
+
+          {/* ── TIMELINE ── */}
+          {tab==="timeline" && !isPrinting && (
+            <TimelineKanban tasks={tasks} project={project} />
+          )}
 
           {/* ── GANTT ── */}
           {(isPrinting || tab==="gantt") && (
@@ -838,6 +852,170 @@ export default function ProjectDetailPage() {
     </>
   );
 }
+
+// ═══════════════════════════════════════════════════════════════
+// TIMELINE KANBAN COMPONENT
+// ═══════════════════════════════════════════════════════════════
+
+const TASK_STATUS_COLS = [
+  { key: "backlog",     label: "Backlog",      color: "#71717A", emoji: "📋" },
+  { key: "in_progress", label: "Em Progresso", color: "#D4AF37", emoji: "🔄" },
+  { key: "review",      label: "Em Review",    color: "#06B6D4", emoji: "🔍" },
+  { key: "blocked",     label: "Bloqueado",    color: "#F87171", emoji: "🚫" },
+  { key: "done",        label: "Concluído",    color: "#4ADE80", emoji: "✅" },
+];
+
+function timeAgo(d: string) {
+  try { return formatDistanceToNow(new Date(d), { addSuffix: true, locale: ptBR }); }
+  catch { return "—"; }
+}
+
+function TimelineKanban({ tasks, project }: { tasks: Task[]; project: Project }) {
+  const tasksByStatus: Record<string, Task[]> = {};
+  for (const col of TASK_STATUS_COLS) tasksByStatus[col.key] = [];
+  for (const t of tasks) {
+    if (tasksByStatus[t.status]) tasksByStatus[t.status].push(t);
+    else tasksByStatus["backlog"] = [...(tasksByStatus["backlog"] ?? []), t];
+  }
+
+  const vc = VERTICAL_COLORS[project.vertical] ?? "#D4AF37";
+  const total = tasks.length;
+  const done = tasksByStatus["done"]?.length ?? 0;
+  const progress = total > 0 ? Math.round((done / total) * 100) : (project.progress ?? 0);
+
+  // Agents involved (unique, from tasks)
+  const agentIds = Array.from(new Set(tasks.map(t => t.agent_id).filter(Boolean))) as string[];
+  // Deliverables
+  const deliverables = tasks.filter(t => t.deliverable_url);
+
+  return (
+    <div className="space-y-6">
+      {/* Metrics bar */}
+      <div className="bg-[#111] border border-[#D4AF37]/10 rounded-2xl p-5">
+        <div className="flex justify-between items-center mb-3">
+          <span className="text-[10px] text-[#F5F5F5]/30 uppercase tracking-wider">Progresso Real (tasks)</span>
+          <span className="text-sm font-bold" style={{ color: vc }}>{progress}%</span>
+        </div>
+        <div className="h-2.5 bg-white/5 rounded-full overflow-hidden mb-4">
+          <div className="h-full rounded-full transition-all" style={{ width: `${progress}%`, backgroundColor: vc }} />
+        </div>
+        <div className="grid grid-cols-3 sm:grid-cols-5 gap-3 text-center">
+          {TASK_STATUS_COLS.map(col => (
+            <div key={col.key} className="bg-white/3 rounded-xl p-2">
+              <p className="text-lg font-bold" style={{ color: col.color }}>{tasksByStatus[col.key]?.length ?? 0}</p>
+              <p className="text-[9px] text-[#F5F5F5]/30 mt-0.5">{col.label}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* 5-column kanban */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+        {TASK_STATUS_COLS.map(col => (
+          <div key={col.key} className="bg-[#0D0D0D] border border-white/5 rounded-2xl overflow-hidden">
+            {/* Column header */}
+            <div className="px-3 py-2.5 border-b border-white/5 flex items-center justify-between"
+              style={{ borderTopColor: col.color, borderTopWidth: 2 }}>
+              <span className="text-[11px] font-semibold" style={{ color: col.color }}>
+                {col.emoji} {col.label}
+              </span>
+              <span className="text-[10px] text-[#F5F5F5]/30 bg-white/5 px-1.5 py-0.5 rounded-full">
+                {tasksByStatus[col.key]?.length ?? 0}
+              </span>
+            </div>
+            {/* Tasks */}
+            <div className="p-2 space-y-1.5 max-h-80 overflow-y-auto">
+              {(tasksByStatus[col.key] ?? []).length === 0 && (
+                <p className="text-[10px] text-[#F5F5F5]/15 text-center py-3">Nenhuma</p>
+              )}
+              {(tasksByStatus[col.key] ?? []).map(t => (
+                <a
+                  key={t.id}
+                  href={`/tasks?filter=${t.code ?? t.id}`}
+                  className="block bg-[#111] hover:bg-[#1a1a1a] border border-white/5 hover:border-[#D4AF37]/20 rounded-xl p-2.5 transition-all"
+                >
+                  {t.code && (
+                    <span className="text-[9px] font-mono text-[#D4AF37]/40 block mb-0.5">{t.code}</span>
+                  )}
+                  <p className="text-[11px] text-[#F5F5F5]/80 leading-snug line-clamp-2">{t.title}</p>
+                  <div className="flex items-center justify-between mt-1.5">
+                    {t.agent_id ? (
+                      <span className="text-[10px]">{AGENT_EMOJI[t.agent_id] ?? "🤖"}</span>
+                    ) : <span />}
+                    <span className="text-[9px] text-[#F5F5F5]/20">{timeAgo(t.updated_at)}</span>
+                  </div>
+                </a>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Section 3 — Project Info */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Agents */}
+        <div className="bg-[#111] border border-[#D4AF37]/10 rounded-2xl p-4">
+          <h3 className="text-[10px] uppercase tracking-widest text-[#D4AF37]/50 mb-3 font-semibold">Agentes Envolvidos</h3>
+          {agentIds.length === 0 ? (
+            <p className="text-xs text-[#F5F5F5]/20">Nenhum agente identificado</p>
+          ) : (
+            <div className="space-y-2">
+              {agentIds.map(a => (
+                <div key={a} className="flex items-center gap-2 text-xs text-[#F5F5F5]/60">
+                  <span className="text-base">{AGENT_EMOJI[a] ?? "🤖"}</span>
+                  <span>{AGENT_NAMES[a] ?? a}</span>
+                  <span className="text-[10px] text-[#F5F5F5]/20">
+                    ({tasks.filter(t => t.agent_id === a).length} tasks)
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Deliverables */}
+        <div className="bg-[#111] border border-[#D4AF37]/10 rounded-2xl p-4">
+          <h3 className="text-[10px] uppercase tracking-widest text-[#D4AF37]/50 mb-3 font-semibold">Deliverables</h3>
+          {deliverables.length === 0 ? (
+            <p className="text-xs text-[#F5F5F5]/20">Nenhum deliverable ainda</p>
+          ) : (
+            <div className="space-y-2 max-h-40 overflow-y-auto">
+              {deliverables.map(t => (
+                <a key={t.id} href={t.deliverable_url!} target="_blank" rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-xs text-[#D4AF37]/60 hover:text-[#D4AF37] transition-colors">
+                  <ExternalLink size={10} className="flex-shrink-0" />
+                  <span className="truncate">{t.code ?? t.title}</span>
+                </a>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Last update */}
+        <div className="bg-[#111] border border-[#D4AF37]/10 rounded-2xl p-4">
+          <h3 className="text-[10px] uppercase tracking-widest text-[#D4AF37]/50 mb-3 font-semibold">Última Atividade</h3>
+          {tasks.length > 0 ? (
+            <div>
+              <p className="text-xs text-[#F5F5F5]/50 mb-1">
+                {timeAgo(tasks[0].updated_at)}
+              </p>
+              {tasks[0].code && <p className="text-[10px] font-mono text-[#D4AF37]/30">{tasks[0].code}</p>}
+              <p className="text-[11px] text-[#F5F5F5]/60 mt-0.5 line-clamp-2">{tasks[0].title}</p>
+            </div>
+          ) : (
+            <p className="text-xs text-[#F5F5F5]/20">Sem atividade registrada</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const AGENT_NAMES: Record<string, string> = {
+  mariana: "Mariana", atena: "Atena", hefesto: "Hefesto",
+  apollo: "Apollo", afrodite: "Afrodite", hera: "Hera",
+  ares: "Ares", hestia: "Héstia",
+};
 
 // ═══════════════════════════════════════════════════════════════
 // SUB-COMPONENTS

@@ -1,162 +1,208 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { Plus, FolderOpen } from "lucide-react";
-import { supabase } from "@/lib/supabase";
-import ProjectCard, { Project } from "@/components/ProjectCard";
-import ProjectDrawer from "@/components/ProjectDrawer";
+import { useRouter } from "next/navigation";
+import { RefreshCw, FolderOpen, ArrowRight } from "lucide-react";
 
-const VERTICALS = ["Todos", "STM Capital", "STM Digital", "AgiSales", "Interno", "STM Consultancy", "STM Health"];
-const STATUSES  = ["Todos", "active", "paused", "completed", "cancelled"];
-const STATUS_LABELS: Record<string, string> = {
-  active: "Ativo", paused: "Pausado", completed: "Concluído", cancelled: "Cancelado",
-};
-const AGENTS = ["Todos", "mariana", "atena", "hefesto", "apollo", "afrodite", "hera", "ares", "hestia"];
-const AGENT_NAMES: Record<string, string> = {
-  mariana: "Mariana", atena: "Atena", hefesto: "Hefesto",
-  apollo: "Apollo", afrodite: "Afrodite", hera: "Hera",
-  ares: "Ares", hestia: "Héstia",
+const VERTICAL_COLOR: Record<string, string> = {
+  "STM Capital":     "#D4AF37",
+  "STM Digital":     "#9B7EC8",
+  "AgiSales":        "#06B6D4",
+  "Interno":         "#8BA888",
+  "STM Consultancy": "#4ADE80",
+  "STM Health":      "#F472B6",
 };
 
-export default function ProjectsPage() {
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [selected, setSelected] = useState<Project | null>(null);
+const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
+  active:    { label: "Ativo",     color: "text-emerald-400", bg: "bg-emerald-500/10 border-emerald-500/30" },
+  paused:    { label: "Pausado",   color: "text-amber-400",   bg: "bg-amber-500/10 border-amber-500/30" },
+  completed: { label: "Concluído", color: "text-zinc-400",    bg: "bg-zinc-500/10 border-zinc-500/30" },
+  cancelled: { label: "Cancelado", color: "text-red-400",     bg: "bg-red-500/10 border-red-500/30" },
+};
 
-  const [filterVertical, setFilterVertical] = useState("Todos");
-  const [filterStatus, setFilterStatus]     = useState("Todos");
-  const [filterAgent, setFilterAgent]       = useState("Todos");
+const AGENT_EMOJI: Record<string, string> = {
+  mariana: "👑", atena: "🔍", hefesto: "⚒️", apollo: "🎭",
+  afrodite: "💄", hera: "⚙️", ares: "⚔️", hestia: "🏠",
+};
 
-  useEffect(() => {
-    async function load() {
-      const { data } = await supabase
-        .from("projects")
-        .select("*, agents(id, name, status)")
-        .order("priority", { ascending: true })
-        .order("name", { ascending: true });
-      setProjects((data as Project[]) ?? []);
-      setLoading(false);
-    }
-    load();
+interface ProjectMetrics { total: number; done: number; inProgress: number; review: number; blocked: number; backlog: number; progress: number; }
+interface Project { id: string; code: string; name: string; description?: string; vertical: string; status: string; lead_agent_id?: string; priority: number; metrics?: ProjectMetrics; }
 
-    const channel = supabase
-      .channel("projects-rt")
-      .on("postgres_changes", { event: "*", schema: "public", table: "projects" }, load)
-      .subscribe();
+function ProgressBar({ percent, color }: { percent: number; color: string }) {
+  return (
+    <div className="w-full bg-zinc-800 rounded-full h-2">
+      <div className="h-2 rounded-full transition-all duration-700"
+        style={{ width: `${Math.min(percent, 100)}%`, backgroundColor: color }} />
+    </div>
+  );
+}
 
-    return () => { supabase.removeChannel(channel); };
-  }, []);
-
-  const filtered = useMemo(() => {
-    return projects.filter((p) => {
-      if (filterVertical !== "Todos" && p.vertical !== filterVertical) return false;
-      if (filterStatus  !== "Todos" && p.status   !== filterStatus)   return false;
-      if (filterAgent   !== "Todos" && p.lead_agent_id !== filterAgent) return false;
-      return true;
-    });
-  }, [projects, filterVertical, filterStatus, filterAgent]);
-
-  const activeCount = projects.filter((p) => p.status === "active").length;
+function ProjectCard({ project, onClick }: { project: Project; onClick: () => void }) {
+  const vColor = VERTICAL_COLOR[project.vertical] || "#888";
+  const statusCfg = STATUS_CONFIG[project.status] || STATUS_CONFIG.active;
+  const m = project.metrics;
 
   return (
-    <div className="min-h-screen bg-[#080808] text-[#F5F5F5]">
-      <div className="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-8 space-y-6">
+    <div onClick={onClick}
+      className="bg-zinc-900/60 border border-zinc-800 rounded-xl p-5 cursor-pointer transition-all hover:shadow-xl flex flex-col gap-4 group"
+      onMouseEnter={e => e.currentTarget.style.borderColor = vColor + "66"}
+      onMouseLeave={e => e.currentTarget.style.borderColor = ""}>
 
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-[#D4AF37]/10 border border-[#D4AF37]/20 flex items-center justify-center">
-              <FolderOpen size={17} className="text-[#D4AF37]" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-[#F5F5F5]">Projetos</h1>
-              <p className="text-xs text-[#F5F5F5]/30">
-                {activeCount} ativos · {projects.length} total
-              </p>
-            </div>
+      {/* Header */}
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap mb-1">
+            <span className="text-xs font-mono px-2 py-0.5 rounded" style={{ backgroundColor: vColor + "22", color: vColor }}>
+              {project.code}
+            </span>
+            <span className={`text-xs px-2 py-0.5 rounded-full border ${statusCfg.bg} ${statusCfg.color}`}>
+              {statusCfg.label}
+            </span>
           </div>
-          <button className="flex items-center gap-2 px-4 py-2 bg-[#D4AF37]/10 hover:bg-[#D4AF37]/20 border border-[#D4AF37]/30 text-[#D4AF37] text-sm rounded-xl transition-colors font-medium">
-            <Plus size={15} />
-            Novo Projeto
-          </button>
-        </div>
-
-        {/* Filters */}
-        <div className="flex flex-wrap gap-2">
-          {/* Vertical */}
-          <select
-            value={filterVertical}
-            onChange={(e) => setFilterVertical(e.target.value)}
-            className="bg-[#1a1a1a] border border-[#D4AF37]/20 text-[#F5F5F5]/70 text-xs rounded-lg px-3 py-2 focus:outline-none focus:border-[#D4AF37]/40 cursor-pointer"
-          >
-            {VERTICALS.map((v) => (
-              <option key={v} value={v} className="bg-[#111]">{v === "Todos" ? "Vertical: Todos" : v}</option>
-            ))}
-          </select>
-
-          {/* Status */}
-          <select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            className="bg-[#1a1a1a] border border-[#D4AF37]/20 text-[#F5F5F5]/70 text-xs rounded-lg px-3 py-2 focus:outline-none focus:border-[#D4AF37]/40 cursor-pointer"
-          >
-            {STATUSES.map((s) => (
-              <option key={s} value={s} className="bg-[#111]">
-                {s === "Todos" ? "Status: Todos" : STATUS_LABELS[s] ?? s}
-              </option>
-            ))}
-          </select>
-
-          {/* Agent */}
-          <select
-            value={filterAgent}
-            onChange={(e) => setFilterAgent(e.target.value)}
-            className="bg-[#1a1a1a] border border-[#D4AF37]/20 text-[#F5F5F5]/70 text-xs rounded-lg px-3 py-2 focus:outline-none focus:border-[#D4AF37]/40 cursor-pointer"
-          >
-            {AGENTS.map((a) => (
-              <option key={a} value={a} className="bg-[#111]">
-                {a === "Todos" ? "Agente: Todos" : AGENT_NAMES[a] ?? a}
-              </option>
-            ))}
-          </select>
-
-          {(filterVertical !== "Todos" || filterStatus !== "Todos" || filterAgent !== "Todos") && (
-            <button
-              onClick={() => { setFilterVertical("Todos"); setFilterStatus("Todos"); setFilterAgent("Todos"); }}
-              className="px-3 py-2 text-[10px] text-[#F5F5F5]/40 hover:text-[#F5F5F5]/70 border border-white/8 rounded-lg transition-colors"
-            >
-              Limpar filtros
-            </button>
+          <h3 className="font-bold text-white text-sm leading-snug">{project.name}</h3>
+          {project.description && (
+            <p className="text-xs text-zinc-500 mt-1 line-clamp-2">{project.description}</p>
           )}
+        </div>
+        <ArrowRight size={16} className="text-zinc-600 group-hover:text-zinc-300 transition-colors shrink-0 mt-1" />
+      </div>
+
+      {/* Progresso */}
+      {m && (
+        <div className="space-y-2">
+          <div className="flex justify-between items-center text-xs">
+            <span className="text-zinc-400">Progresso</span>
+            <span className="font-bold" style={{ color: vColor }}>{m.progress}%</span>
+          </div>
+          <ProgressBar percent={m.progress} color={vColor} />
+          <div className="flex gap-3 text-xs text-zinc-500 flex-wrap">
+            <span>{m.total} tasks</span>
+            {m.inProgress > 0 && <span className="text-blue-400">↻ {m.inProgress} em andamento</span>}
+            {m.review > 0 && <span className="text-amber-400">👁 {m.review} em review</span>}
+            {m.blocked > 0 && <span className="text-red-400">⛔ {m.blocked} bloqueadas</span>}
+            <span className="text-emerald-400">✓ {m.done} concluídas</span>
+          </div>
+        </div>
+      )}
+
+      {/* Footer */}
+      <div className="flex items-center justify-between pt-1 border-t border-zinc-800">
+        <div className="flex items-center gap-1.5 text-xs text-zinc-500">
+          <span className="text-base">{AGENT_EMOJI[project.lead_agent_id || ""] || "🤖"}</span>
+          <span>{project.lead_agent_id || "—"}</span>
+        </div>
+        <span className="text-xs px-2 py-0.5 rounded" style={{ backgroundColor: vColor + "15", color: vColor }}>
+          {project.vertical}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+export default function ProjectsPage() {
+  const router = useRouter();
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [taskMetrics, setTaskMetrics] = useState<Record<string, ProjectMetrics>>({});
+  const [loading, setLoading] = useState(true);
+  const [filterVertical, setFilterVertical] = useState("Todos");
+  const [filterStatus, setFilterStatus] = useState("Todos");
+
+  async function load() {
+    setLoading(true);
+    const SVC = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    const URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+
+    const [projRes, tasksRes] = await Promise.all([
+      fetch(`${URL}/rest/v1/projects?select=*&order=priority.asc`, { headers: { apikey: SVC!, Authorization: `Bearer ${SVC}` } }),
+      fetch(`${URL}/rest/v1/tasks?select=project_code,status`, { headers: { apikey: SVC!, Authorization: `Bearer ${SVC}` } }),
+    ]);
+
+    const projs: Project[] = await projRes.json();
+    const tasks: { project_code: string; status: string }[] = await tasksRes.json();
+
+    // Calcular métricas por projeto
+    const metrics: Record<string, ProjectMetrics> = {};
+    if (Array.isArray(tasks)) {
+      tasks.forEach(t => {
+        if (!t.project_code) return;
+        if (!metrics[t.project_code]) metrics[t.project_code] = { total: 0, done: 0, inProgress: 0, review: 0, blocked: 0, backlog: 0, progress: 0 };
+        const m = metrics[t.project_code];
+        m.total++;
+        if (t.status === "done") m.done++;
+        else if (t.status === "in_progress") m.inProgress++;
+        else if (t.status === "review") m.review++;
+        else if (t.status === "blocked") m.blocked++;
+        else if (t.status === "backlog") m.backlog++;
+      });
+      Object.keys(metrics).forEach(code => {
+        const m = metrics[code];
+        m.progress = m.total > 0 ? Math.round((m.done / m.total) * 100) : 0;
+      });
+    }
+
+    setProjects(Array.isArray(projs) ? projs : []);
+    setTaskMetrics(metrics);
+    setLoading(false);
+  }
+
+  useEffect(() => { load(); }, []);
+
+  const filtered = useMemo(() => projects
+    .filter(p => filterVertical === "Todos" || p.vertical === filterVertical)
+    .filter(p => filterStatus === "Todos" || p.status === filterStatus)
+    .map(p => ({ ...p, metrics: taskMetrics[p.code] })),
+    [projects, taskMetrics, filterVertical, filterStatus]);
+
+  const activeCount = projects.filter(p => p.status === "active").length;
+  const verticals = ["Todos", ...Array.from(new Set(projects.map(p => p.vertical)))];
+  const statuses = ["Todos", "active", "paused", "completed", "cancelled"];
+  const STATUS_LABELS: Record<string, string> = { active: "Ativo", paused: "Pausado", completed: "Concluído", cancelled: "Cancelado" };
+
+  return (
+    <div className="min-h-screen bg-black text-white p-6">
+      <div className="max-w-5xl mx-auto">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+          <div>
+            <h1 className="text-2xl font-bold" style={{ color: "#D4AF37" }}>Projetos</h1>
+            <p className="text-sm text-zinc-500 mt-1">{activeCount} projetos ativos</p>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <select value={filterVertical} onChange={e => setFilterVertical(e.target.value)}
+              className="bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-1.5 text-sm text-zinc-300 focus:outline-none">
+              {verticals.map(v => <option key={v} value={v}>{v}</option>)}
+            </select>
+            <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
+              className="bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-1.5 text-sm text-zinc-300 focus:outline-none">
+              {statuses.map(s => <option key={s} value={s}>{s === "Todos" ? "Todos os status" : STATUS_LABELS[s]}</option>)}
+            </select>
+            <button onClick={load} disabled={loading}
+              className="p-2 bg-zinc-900 border border-zinc-700 rounded-lg hover:border-zinc-500 transition-colors disabled:opacity-50">
+              <RefreshCw size={14} className={loading ? "animate-spin text-zinc-400" : "text-zinc-400"} />
+            </button>
+          </div>
         </div>
 
         {/* Grid */}
-        {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="h-52 bg-white/3 rounded-2xl animate-pulse" />
+        {loading && projects.length === 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="bg-zinc-900/60 border border-zinc-800 rounded-xl p-5 h-48 animate-pulse" />
             ))}
           </div>
         ) : filtered.length === 0 ? (
-          <div className="text-center py-20 text-[#F5F5F5]/20 text-sm">
-            Nenhum projeto encontrado.
+          <div className="flex flex-col items-center justify-center py-20 text-zinc-600">
+            <FolderOpen size={40} className="mb-3" />
+            <p>Nenhum projeto encontrado.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filtered.map((p) => (
-              <ProjectCard key={p.id} project={p} onClick={() => setSelected(p)} />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            {filtered.map(p => (
+              <ProjectCard key={p.id} project={p} onClick={() => router.push(`/projects/${p.code || p.id}`)} />
             ))}
           </div>
         )}
       </div>
-
-      {/* Drawer */}
-      {selected && (
-        <ProjectDrawer
-          project={selected}
-          onClose={() => setSelected(null)}
-        />
-      )}
     </div>
   );
 }
