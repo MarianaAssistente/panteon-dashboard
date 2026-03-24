@@ -361,7 +361,7 @@ export default function TasksPage() {
   const [filterAgent, setFilterAgent] = useState("");
   const [filterVertical, setFilterVertical] = useState("");
   const [search, setSearch] = useState("");
-  const [showDone, setShowDone] = useState(false);
+  const [showDone, setShowDone] = useState(true);
 
   // Modal/Drawer state
   const [confirmTask, setConfirmTask] = useState<Task | null>(null);
@@ -540,7 +540,7 @@ export default function TasksPage() {
                   : "border-zinc-700 text-zinc-500 hover:border-zinc-500"
               }`}
             >
-              {showDone ? "✓ Mostrar concluídas" : "Mostrar concluídas"}
+              {showDone ? "✓ Ocultar concluídas" : "Mostrar concluídas"}
             </button>
           </div>
         </div>
