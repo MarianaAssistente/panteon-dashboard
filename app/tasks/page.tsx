@@ -225,11 +225,24 @@ function TaskDrawer({
 
   async function saveNotes() {
     setSaving(true);
+    // Salvar nota no campo description da task (agentes leem este campo)
     await fetch(`${SB_URL}/rest/v1/tasks?code=eq.${task.code}`, {
       method: "PATCH",
       headers: { apikey: SVC, Authorization: `Bearer ${SVC}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ notes }),
+      body: JSON.stringify({ notes, description: notes }),
     });
+    // Notificar o agente sobre a nota adicionada
+    if (task.agent_id && notes.trim()) {
+      await fetch("/api/dispatch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          agentId: task.agent_id,
+          task: `[Nota do Yuri na task ${task.code} — "${task.title}"]:\n\n${notes}`,
+          taskCode: task.code,
+        }),
+      });
+    }
     setSaving(false);
   }
 
@@ -355,6 +368,7 @@ export default function TasksPage() {
   const [dispatching, setDispatching] = useState(false);
   const [dispatchDone, setDispatchDone] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [reviewConfirmTask, setReviewConfirmTask] = useState<Task | null>(null);
 
   // Auto-refresh
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -411,10 +425,17 @@ export default function TasksPage() {
     const target = direction === "next" ? nextCol(task.status) : prevCol(task.status);
     if (!target) return;
 
-    // Special: backlog → in_progress requires confirmation + dispatch
+    // backlog → in_progress: confirmar e disparar agente
     if (task.status === "backlog" && target.key === "in_progress") {
       setDispatchDone(false);
       setConfirmTask(task);
+      return;
+    }
+
+    // in_progress → review: bloquear via botão — só agente pode mover
+    // (Yuri pode usar o drawer se precisar forçar)
+    if (task.status === "in_progress" && target.key === "review") {
+      setReviewConfirmTask(task);
       return;
     }
 
@@ -447,6 +468,35 @@ export default function TasksPage() {
   return (
     <div className="min-h-screen bg-black text-white flex flex-col">
       {/* Modals */}
+      {/* Modal: mover in_progress → review (só com confirmação) */}
+      {reviewConfirmTask && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+          <div className="bg-zinc-900 border border-yellow-500/40 rounded-xl p-6 w-full max-w-md shadow-2xl">
+            <h2 className="text-base font-bold text-yellow-400 mb-2">⚠️ Mover para Em Review</h2>
+            <p className="text-sm text-zinc-300 mb-1">
+              Tarefa: <span className="font-semibold text-white">{reviewConfirmTask.title}</span>
+            </p>
+            <p className="text-sm text-zinc-400 mb-4">
+              "Em Review" indica que o agente <strong className="text-white">{reviewConfirmTask.agent_id}</strong> concluiu o trabalho e você precisa aprovar.
+              <br /><br />
+              Se a atividade <strong>ainda não foi concluída</strong> pelo agente, mantenha em "Em Progresso".
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button onClick={() => setReviewConfirmTask(null)}
+                className="px-4 py-2 bg-zinc-700 hover:bg-zinc-600 rounded-lg text-sm transition-colors">
+                Cancelar — ainda está em andamento
+              </button>
+              <button onClick={async () => {
+                await patchStatus(reviewConfirmTask, "review");
+                setReviewConfirmTask(null);
+              }} className="px-4 py-2 bg-yellow-500 hover:bg-yellow-400 text-black rounded-lg text-sm font-semibold transition-colors">
+                Confirmar — trabalho concluído
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {confirmTask && (
         <ConfirmDispatchModal
           task={confirmTask}
