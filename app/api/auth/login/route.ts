@@ -15,6 +15,23 @@ function getClientIp(request: NextRequest): string {
   );
 }
 
+async function signToken(token: string, secret: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const keyData = encoder.encode(secret);
+  const key = await crypto.subtle.importKey(
+    "raw",
+    keyData,
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+  const tokenData = encoder.encode(token);
+  const sigBuffer = await crypto.subtle.sign("HMAC", key, tokenData);
+  return Array.from(new Uint8Array(sigBuffer))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
 export async function POST(request: NextRequest) {
   const ip = getClientIp(request);
   const now = Date.now();
@@ -72,36 +89,25 @@ export async function POST(request: NextRequest) {
     // Success — clear rate limit for this IP
     rateLimitMap.delete(ip);
 
-    // Generate session token using AUTH_SECRET
+    // Generate session token
+    const sessionToken = crypto.randomBytes(32).toString("hex");
+
+    // Sign with AUTH_SECRET using Web Crypto API (same as middleware)
     const authSecret = process.env.AUTH_SECRET ?? "fallback-secret";
-    const sessionToken = crypto
-      .createHmac("sha256", authSecret)
-      .update(`session:${Date.now()}`)
-      .digest("hex");
+    const sessionSig = await signToken(sessionToken, authSecret);
 
     const response = NextResponse.json({ ok: true });
-    response.cookies.set("session", sessionToken, {
+
+    const cookieOpts = {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
+      sameSite: "strict" as const,
       maxAge: 60 * 60 * 8, // 8 hours
       path: "/",
-    });
+    };
 
-    // Also store valid token in a persistent way (sign with secret for verification)
-    // We sign the token with AUTH_SECRET so middleware can verify without a DB
-    const signedToken = crypto
-      .createHmac("sha256", authSecret)
-      .update(sessionToken)
-      .digest("hex");
-
-    response.cookies.set("session_sig", signedToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      maxAge: 60 * 60 * 8,
-      path: "/",
-    });
+    response.cookies.set("session", sessionToken, cookieOpts);
+    response.cookies.set("session_sig", sessionSig, cookieOpts);
 
     return response;
   } catch {

@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import crypto from "crypto";
 
-function verifySession(request: NextRequest): boolean {
+async function verifySession(request: NextRequest): Promise<boolean> {
   const sessionToken = request.cookies.get("session")?.value;
   const sessionSig = request.cookies.get("session_sig")?.value;
 
@@ -11,24 +10,37 @@ function verifySession(request: NextRequest): boolean {
   const authSecret = process.env.AUTH_SECRET ?? "";
   if (!authSecret) return false;
 
-  // Verify the signature matches the token (prevents cookie tampering)
   try {
-    const expectedSig = crypto
-      .createHmac("sha256", authSecret)
-      .update(sessionToken)
-      .digest("hex");
+    // Use Web Crypto API (available in Edge Runtime)
+    const encoder = new TextEncoder();
+    const keyData = encoder.encode(authSecret);
+    const key = await crypto.subtle.importKey(
+      "raw",
+      keyData,
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["sign", "verify"]
+    );
 
-    const expectedBuf = Buffer.from(expectedSig, "hex");
-    const providedBuf = Buffer.from(sessionSig, "hex");
+    const tokenData = encoder.encode(sessionToken);
+    const sigBytes = hexToBytes(sessionSig);
 
-    if (expectedBuf.length !== providedBuf.length) return false;
-    return crypto.timingSafeEqual(expectedBuf, providedBuf);
+    const isValid = await crypto.subtle.verify("HMAC", key, sigBytes.buffer as ArrayBuffer, tokenData);
+    return isValid;
   } catch {
     return false;
   }
 }
 
-export function middleware(request: NextRequest) {
+function hexToBytes(hex: string): Uint8Array {
+  const bytes = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < hex.length; i += 2) {
+    bytes[i / 2] = parseInt(hex.slice(i, i + 2), 16);
+  }
+  return bytes;
+}
+
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Allow static assets, login page, and auth API routes
@@ -42,7 +54,8 @@ export function middleware(request: NextRequest) {
   }
 
   // Verify session cookie
-  if (verifySession(request)) {
+  const valid = await verifySession(request);
+  if (valid) {
     return NextResponse.next();
   }
 
