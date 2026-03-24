@@ -155,7 +155,7 @@ export default function ProjectDetailPage() {
   const vColor = VERTICAL_COLOR[project.vertical] || "#D4AF37";
   const m = project.metrics;
   const deliverables = project.tasks.filter(t => t.deliverable_url);
-  const involvedAgents = [...new Set(project.tasks.map(t => t.agent_id).filter(Boolean))];
+  const involvedAgents = Array.from(new Set(project.tasks.map(t => t.agent_id).filter(Boolean)));
 
   return (
     <div className="min-h-screen bg-black text-white p-6">
