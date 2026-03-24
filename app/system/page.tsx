@@ -23,6 +23,17 @@ interface CronJob {
   lastDurationMs?: number | null;
 }
 
+interface VpsCronJob {
+  id: string;
+  name: string;
+  desc: string;
+  category: string;
+  schedule: string;
+  scheduleLabel: string;
+  status: "ok" | "watchdog" | "reboot";
+  raw: string;
+}
+
 interface Heartbeat {
   id: string;
   agent_id: string;
@@ -368,6 +379,11 @@ export default function SystemPage() {
   const [fetchedAt, setFetchedAt] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [vpsCrons, setVpsCrons] = useState<VpsCronJob[]>([]);
+  const [vpsCronFilter, setVpsCronFilter] = useState("todos");
+  const [vpsCronLoading, setVpsCronLoading] = useState(false);
+  const [vpsCronError, setVpsCronError] = useState<string | null>(null);
+  const [showRaw, setShowRaw] = useState<Record<string, boolean>>({});
 
   const loadData = useCallback(async () => {
     setIsLoading(true);
@@ -392,6 +408,25 @@ export default function SystemPage() {
     const interval = setInterval(loadData, 60000); // auto-refresh 60s
     return () => clearInterval(interval);
   }, [loadData]);
+
+  async function loadVpsCrons() {
+    setVpsCronLoading(true);
+    setVpsCronError(null);
+    try {
+      const res = await fetch("/api/crons", { cache: "no-store" });
+      const data = await res.json();
+      if (data.jobs) setVpsCrons(data.jobs);
+      else setVpsCronError(data.error || "Não foi possível carregar os crons.");
+    } catch {
+      setVpsCronError("Erro de conexão.");
+    } finally {
+      setVpsCronLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    if (activeTab === "crons") loadVpsCrons();
+  }, [activeTab]);
 
   return (
     <div className="min-h-screen bg-black text-zinc-100 p-6">
@@ -498,50 +533,123 @@ export default function SystemPage() {
 
         {/* CRONS */}
         {activeTab === "crons" && (
-          <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden">
-            {isLoading && crons.length === 0 ? (
-              <div className="p-8 text-center text-zinc-500">Carregando...</div>
+          <div>
+            {/* Header controls */}
+            <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+              <div className="flex items-center gap-2 flex-wrap">
+                {["todos","instagram","sistema","infra","gestao","outros"].map((f) => {
+                  const icons: Record<string,string> = { todos:"🗂️", instagram:"📸", sistema:"⚙️", infra:"🏗️", gestao:"📋", outros:"⚡" };
+                  const colors: Record<string,string> = {
+                    todos: "border-zinc-600 text-zinc-300",
+                    instagram: "border-pink-500/60 text-pink-400",
+                    sistema: "border-blue-500/60 text-blue-400",
+                    infra: "border-orange-500/60 text-orange-400",
+                    gestao: "border-emerald-500/60 text-emerald-400",
+                    outros: "border-zinc-500/60 text-zinc-400",
+                  };
+                  const active = vpsCronFilter === f;
+                  return (
+                    <button
+                      key={f}
+                      onClick={() => setVpsCronFilter(f)}
+                      className={`px-3 py-1.5 rounded-lg border text-xs font-medium transition-all capitalize ${
+                        active ? `${colors[f]} bg-zinc-800` : "border-zinc-700 text-zinc-500 hover:text-zinc-300"
+                      }`}
+                    >
+                      {icons[f]} {f === "gestao" ? "Gestão" : f.charAt(0).toUpperCase() + f.slice(1)}
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="flex items-center gap-3">
+                {vpsCrons.length > 0 && (
+                  <span className="text-xs text-zinc-500">
+                    {vpsCrons.filter(c => vpsCronFilter === "todos" || c.category === vpsCronFilter).length} jobs ativos
+                  </span>
+                )}
+                <button
+                  onClick={loadVpsCrons}
+                  disabled={vpsCronLoading}
+                  className="flex items-center gap-2 px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 rounded-lg border border-zinc-700 text-xs transition-colors disabled:opacity-50"
+                >
+                  <RefreshCw className={`w-3 h-3 ${vpsCronLoading ? "animate-spin" : ""}`} />
+                  Atualizar
+                </button>
+              </div>
+            </div>
+
+            {vpsCronError && (
+              <div className="mb-4 p-4 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-sm">
+                {vpsCronError}
+              </div>
+            )}
+
+            {vpsCronLoading && vpsCrons.length === 0 ? (
+              <div className="flex items-center justify-center py-16 text-zinc-500">
+                <RefreshCw className="w-5 h-5 animate-spin mr-2" />
+                Consultando crontab do VPS...
+              </div>
+            ) : vpsCrons.length === 0 && !vpsCronLoading ? (
+              <div className="text-center py-16">
+                <Terminal className="w-12 h-12 text-zinc-700 mx-auto mb-3" />
+                <p className="text-zinc-500">Nenhum cron encontrado.</p>
+                <button onClick={loadVpsCrons} className="mt-4 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg border border-zinc-700 text-sm text-zinc-300 transition-colors">
+                  Carregar crontab
+                </button>
+              </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-zinc-800/50 border-b border-zinc-700">
-                    <tr>
-                      <th className="text-left px-4 py-3 text-xs font-medium text-zinc-400 uppercase">Nome</th>
-                      <th className="text-left px-4 py-3 text-xs font-medium text-zinc-400 uppercase">Agendamento</th>
-                      <th className="text-left px-4 py-3 text-xs font-medium text-zinc-400 uppercase">Duração</th>
-                      <th className="text-left px-4 py-3 text-xs font-medium text-zinc-400 uppercase">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-zinc-800">
-                    {crons.map((cron) => (
-                      <tr key={cron.id} className="hover:bg-zinc-800/30 transition-colors">
-                        <td className="px-4 py-4">
-                          <div className="font-medium text-sm">{cron.name}</div>
-                          {cron.description && (
-                            <div className="text-xs text-zinc-500 mt-0.5">{cron.description}</div>
-                          )}
-                        </td>
-                        <td className="px-4 py-4">
-                          <code className="px-2 py-1 bg-zinc-800 rounded text-xs text-violet-300 font-mono">
-                            {cron.schedule}
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                {vpsCrons
+                  .filter(c => vpsCronFilter === "todos" || c.category === vpsCronFilter)
+                  .map((job) => {
+                    const catConfig: Record<string, { icon: string; color: string; bg: string; border: string }> = {
+                      instagram: { icon: "📸", color: "text-pink-400", bg: "bg-pink-500/10", border: "border-pink-500/30" },
+                      sistema:   { icon: "⚙️", color: "text-blue-400", bg: "bg-blue-500/10", border: "border-blue-500/30" },
+                      infra:     { icon: "🏗️", color: "text-orange-400", bg: "bg-orange-500/10", border: "border-orange-500/30" },
+                      gestao:    { icon: "📋", color: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/30" },
+                      outros:    { icon: "⚡", color: "text-zinc-400", bg: "bg-zinc-800/50", border: "border-zinc-700" },
+                    };
+                    const cat = catConfig[job.category] || catConfig.outros;
+                    const statusBadge = job.status === "reboot"
+                      ? <span className="text-xs px-2 py-0.5 bg-blue-500/20 text-blue-300 border border-blue-500/30 rounded-full">🔄 @reboot</span>
+                      : job.status === "watchdog"
+                      ? <span className="text-xs px-2 py-0.5 bg-yellow-500/20 text-yellow-300 border border-yellow-500/30 rounded-full">⚠️ Watchdog</span>
+                      : <span className="text-xs px-2 py-0.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded-full">✅ Ativo</span>;
+                    const isRawVisible = showRaw[job.id];
+                    return (
+                      <div key={job.id} className={`${cat.bg} ${cat.border} border rounded-xl p-4 flex flex-col gap-3 hover:opacity-90 transition-opacity`}>
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-lg">{cat.icon}</span>
+                            <span className={`text-xs font-medium uppercase tracking-wide ${cat.color}`}>{job.category}</span>
+                          </div>
+                          {statusBadge}
+                        </div>
+                        <div>
+                          <div className="font-semibold text-sm text-zinc-100">{job.name}</div>
+                          <div className="text-xs text-zinc-400 mt-0.5">{job.desc}</div>
+                        </div>
+                        <div>
+                          <span className="inline-block px-2 py-0.5 bg-zinc-800 border border-zinc-700 rounded text-xs text-violet-300 font-mono">
+                            {job.scheduleLabel || job.schedule}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between pt-1 border-t border-zinc-700/50">
+                          <button
+                            onClick={() => setShowRaw(prev => ({ ...prev, [job.id]: !prev[job.id] }))}
+                            className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
+                          >
+                            {isRawVisible ? "▲ Ocultar raw" : "▼ Ver raw"}
+                          </button>
+                        </div>
+                        {isRawVisible && (
+                          <code className="block text-xs text-zinc-400 font-mono bg-zinc-900/80 rounded p-2 break-all whitespace-pre-wrap">
+                            {job.raw}
                           </code>
-                          <div className="text-xs text-zinc-500 mt-1">{cronLabel(cron.schedule)}</div>
-                        </td>
-                        <td className="px-4 py-4">
-                          <span className="text-zinc-300 text-sm">{formatDuration(cron.lastDurationMs)}</span>
-                        </td>
-                        <td className="px-4 py-4">
-                          <CronStatusBadge status={cron.status} />
-                          {cron.consecutiveErrors > 0 && (
-                            <div className="text-xs text-red-400 mt-1">
-                              {cron.consecutiveErrors} erro(s)
-                            </div>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                        )}
+                      </div>
+                    );
+                  })}
               </div>
             )}
           </div>
