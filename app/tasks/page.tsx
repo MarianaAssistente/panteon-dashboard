@@ -1,387 +1,581 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { X, ExternalLink, Link2, AlertCircle, Clock, CheckCircle, Loader2, GitBranch } from "lucide-react";
+import {
+  X, ExternalLink, ChevronLeft, ChevronRight, RefreshCw,
+  Search, CheckCircle2, AlertCircle, Loader2,
+} from "lucide-react";
 
-const STATUS_COLUMNS = [
-  { key: "in_progress", label: "Em Progresso",  dot: "bg-blue-400",   color: "#60A5FA" },
-  { key: "review",      label: "Em Review",      dot: "bg-yellow-400", color: "#FBBF24" },
-  { key: "blocked",     label: "Bloqueado",       dot: "bg-red-400",    color: "#F87171" },
-  { key: "backlog",     label: "Backlog",         dot: "bg-zinc-500",   color: "#71717A" },
-  { key: "done",        label: "Concluído",       dot: "bg-green-400",  color: "#4ADE80" },
+// ── Types ──────────────────────────────────────────────────────────────────
+interface Task {
+  id: string;
+  code: string;
+  title: string;
+  description?: string;
+  agent_id?: string;
+  status: string;
+  vertical?: string;
+  project_code?: string;
+  priority?: number;
+  notes?: string;
+  deliverable_url?: string;
+  created_at?: string;
+  updated_at?: string;
+  completed_at?: string;
+}
+
+// ── Constants ──────────────────────────────────────────────────────────────
+const COLUMNS = [
+  { key: "backlog",     label: "Backlog",        color: "#71717A", border: "border-zinc-600",   bg: "bg-zinc-600/10"  },
+  { key: "in_progress", label: "Em Progresso",   color: "#60A5FA", border: "border-blue-500",   bg: "bg-blue-500/10"  },
+  { key: "review",      label: "Em Review",      color: "#FBBF24", border: "border-yellow-500", bg: "bg-yellow-500/10"},
+  { key: "blocked",     label: "Bloqueado",      color: "#F87171", border: "border-red-500",    bg: "bg-red-500/10"   },
+  { key: "done",        label: "Concluído",      color: "#4ADE80", border: "border-green-500",  bg: "bg-green-500/10" },
 ];
-
-const PROJECT_COLORS: Record<string, string> = {
-  "CAP-001": "#D4AF37",
-  "CAP-002": "#B8962E",
-  "CAP-003": "#C8A84B",
-  "DIG-001": "#9B7EC8",
-  "DIG-002": "#7C5CBF",
-  "DIG-003": "#B09AD6",
-  "AGI-001": "#06B6D4",
-  "INT-001": "#8BA888",
-};
-
-const VERTICAL_COLOR: Record<string, string> = {
-  "STM Capital":     "#D4AF37",
-  "STM Digital":     "#9B7EC8",
-  "AgiSales":        "#06B6D4",
-  "Interno":         "#8BA888",
-  "STM Consultancy": "#4ADE80",
-  "STM Health":      "#F472B6",
-};
 
 const AGENT_EMOJI: Record<string, string> = {
   mariana: "👑", atena: "🦉", hefesto: "⚒️", apollo: "🎨",
   afrodite: "✨", hera: "🏛️", ares: "⚔️", hestia: "🕯️",
 };
 
-const PRIORITY_COLOR: Record<number, string> = { 1: "#EF4444", 2: "#F59E0B", 3: "#71717A" };
+const PRIORITY_LABEL: Record<number, string> = { 1: "Alta", 2: "Média", 3: "Baixa" };
+const PRIORITY_COLOR: Record<number, string> = { 1: "text-red-400", 2: "text-yellow-400", 3: "text-zinc-400" };
 
-export default function TasksPage() {
-  const [tasks, setTasks] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [filterAgent, setFilterAgent] = useState("");
-  const [filterVertical, setFilterVertical] = useState("");
-  const [filterProject, setFilterProject] = useState("");
-  const [selected, setSelected] = useState<any | null>(null);
+const PROJECT_COLORS: Record<string, string> = {
+  "CAP-001": "#D4AF37", "CAP-002": "#B8962E", "CAP-003": "#C8A84B",
+  "DIG-001": "#9B7EC8", "DIG-002": "#7C5CBF", "DIG-003": "#B09AD6",
+  "AGI-001": "#06B6D4", "INT-001": "#8BA888",
+};
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    let q = supabase.from("tasks").select("*").order("priority").order("updated_at", { ascending: false });
-    if (filterAgent)    q = q.eq("agent_id", filterAgent);
-    if (filterVertical) q = q.eq("vertical", filterVertical);
-    if (filterProject)  q = q.eq("project_code", filterProject);
-    const { data } = await q;
-    setTasks(data ?? []);
-    setLoading(false);
-  }, [filterAgent, filterVertical, filterProject]);
+const SVC = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1b2dxdnVzeHVlZXRhcGN2c2ZwIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjgzMTMxOCwiZXhwIjoyMDg4NDA3MzE4fQ.0L45hSJTcit5DsgKRBB021EX0GTMOh8Yq3rIfomxT58";
+const SB_URL = "https://duogqvusxueetapcvsfp.supabase.co";
 
-  useEffect(() => { load(); }, [load]);
+// ── Helpers ────────────────────────────────────────────────────────────────
+function relTime(iso?: string) {
+  if (!iso) return "–";
+  try { return formatDistanceToNow(new Date(iso), { addSuffix: true, locale: ptBR }); }
+  catch { return iso; }
+}
 
-  useEffect(() => {
-    const ch = supabase.channel("tasks-rt")
-      .on("postgres_changes", { event: "*", schema: "public", table: "tasks" }, load)
-      .subscribe();
-    return () => { supabase.removeChannel(ch); };
-  }, [load]);
+function colOf(key: string) { return COLUMNS.find(c => c.key === key); }
+function nextCol(key: string) {
+  const idx = COLUMNS.findIndex(c => c.key === key);
+  return idx < COLUMNS.length - 1 ? COLUMNS[idx + 1] : null;
+}
+function prevCol(key: string) {
+  const idx = COLUMNS.findIndex(c => c.key === key);
+  return idx > 0 ? COLUMNS[idx - 1] : null;
+}
 
-  const grouped: Record<string, any[]> = {};
-  for (const col of STATUS_COLUMNS) grouped[col.key] = [];
-  for (const t of tasks) {
-    const key = t.status in grouped ? t.status : "backlog";
-    grouped[key].push(t);
-  }
-
-  // Build code→task map for dependency lookup
-  const taskByCode: Record<string, any> = {};
-  for (const t of tasks) if (t.code) taskByCode[t.code] = t;
-
-  // Which tasks depend ON this task
-  const dependents: Record<string, string[]> = {};
-  for (const t of tasks) {
-    for (const dep of (t.depends_on ?? [])) {
-      if (!dependents[dep]) dependents[dep] = [];
-      dependents[dep].push(t.code);
-    }
-  }
-
-  const projectCodes = Array.from(new Set(tasks.map((t: any) => t.project_code).filter(Boolean))).sort() as string[];
-
+// ── Confirm Modal ──────────────────────────────────────────────────────────
+function ConfirmDispatchModal({
+  task, onConfirm, onCancel, dispatching, done,
+}: {
+  task: Task;
+  onConfirm: () => void;
+  onCancel: () => void;
+  dispatching: boolean;
+  done: boolean;
+}) {
   return (
-    <>
-      <div className="flex-1 overflow-auto p-6">
-        {/* Header */}
-        <div className="mb-6 flex items-center justify-between flex-wrap gap-3">
-          <div>
-            <h1 className="text-xl font-semibold text-[#F5F5F5]">Fila de Tarefas</h1>
-            <p className="text-[#F5F5F5]/40 text-sm mt-0.5">{tasks.length} tarefas · clique para detalhar</p>
-          </div>
-          {/* Filters */}
-          <div className="flex gap-2 flex-wrap">
-            <select value={filterAgent} onChange={e => setFilterAgent(e.target.value)}
-              className="bg-[#111] border border-[#D4AF37]/15 rounded-lg px-3 py-1.5 text-xs text-[#F5F5F5]/60 focus:outline-none">
-              <option value="">Todos os agentes</option>
-              {["mariana","atena","hefesto","apollo","afrodite","hera","ares","hestia"].map(a => (
-                <option key={a} value={a}>{AGENT_EMOJI[a]} {a}</option>
-              ))}
-            </select>
-            <select value={filterVertical} onChange={e => setFilterVertical(e.target.value)}
-              className="bg-[#111] border border-[#D4AF37]/15 rounded-lg px-3 py-1.5 text-xs text-[#F5F5F5]/60 focus:outline-none">
-              <option value="">Todas verticais</option>
-              {Object.keys(VERTICAL_COLOR).map(v => <option key={v} value={v}>{v}</option>)}
-            </select>
-            {projectCodes.length > 0 && (
-              <select value={filterProject} onChange={e => setFilterProject(e.target.value)}
-                className="bg-[#111] border border-[#D4AF37]/15 rounded-lg px-3 py-1.5 text-xs text-[#F5F5F5]/60 focus:outline-none">
-                <option value="">Todos os projetos</option>
-                {projectCodes.map(p => <option key={p} value={p}>{p}</option>)}
-              </select>
-            )}
-            {(filterAgent || filterVertical || filterProject) && (
-              <button onClick={() => { setFilterAgent(""); setFilterVertical(""); setFilterProject(""); }}
-                className="text-xs text-[#D4AF37]/50 hover:text-[#D4AF37] px-2">Limpar ×</button>
-            )}
-          </div>
-        </div>
-
-        {/* Kanban */}
-        {loading ? (
-          <div className="flex items-center justify-center h-40">
-            <Loader2 size={20} className="text-[#D4AF37]/40 animate-spin" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+      <div className="w-full max-w-md mx-4 bg-zinc-900 border border-zinc-700 rounded-xl p-6 shadow-2xl">
+        {done ? (
+          <div className="text-center py-4">
+            <CheckCircle2 className="mx-auto mb-3 text-green-400" size={36} />
+            <p className="text-green-400 font-semibold text-lg">Task iniciada!</p>
+            <p className="text-zinc-400 mt-1 text-sm">
+              {AGENT_EMOJI[task.agent_id || ""] || "🤖"} {task.agent_id} foi notificado e começará em instantes.
+            </p>
           </div>
         ) : (
-          <div className="flex gap-4 overflow-x-auto pb-4">
-            {STATUS_COLUMNS.map(col => (
-              <div key={col.key} className="flex-shrink-0 w-72">
-                {/* Column header */}
-                <div className="flex items-center gap-2 mb-3 px-1">
-                  <span className={`w-2 h-2 rounded-full ${col.dot}`} />
-                  <span className="text-xs font-semibold text-[#F5F5F5]/60 uppercase tracking-wider">{col.label}</span>
-                  <span className="ml-auto text-[10px] text-[#F5F5F5]/30 bg-[#111] px-2 py-0.5 rounded-full border border-[#D4AF37]/8">
-                    {grouped[col.key].length}
-                  </span>
-                </div>
-                {/* Cards */}
-                <div className="space-y-2">
-                  {grouped[col.key].map(task => (
-                    <TaskCard
-                      key={task.id}
-                      task={task}
-                      dependsOnTasks={(task.depends_on ?? []).map((c: string) => taskByCode[c]).filter(Boolean)}
-                      blockedByThis={dependents[task.code] ?? []}
-                      onClick={() => setSelected(task)}
-                    />
-                  ))}
-                  {grouped[col.key].length === 0 && (
-                    <div className="h-16 rounded-xl border border-dashed border-[#D4AF37]/8 flex items-center justify-center">
-                      <span className="text-[10px] text-[#F5F5F5]/15">vazio</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
+          <>
+            <h2 className="text-white font-bold text-lg mb-2">Iniciar task?</h2>
+            <p className="text-zinc-400 text-sm mb-1">
+              Você está prestes a mover <span className="font-mono text-blue-400">{task.code}</span> para{" "}
+              <span className="text-blue-400 font-semibold">Em Progresso</span> e notificar o agente responsável.
+            </p>
+            <p className="text-zinc-300 text-sm mb-5">
+              Agente: {AGENT_EMOJI[task.agent_id || ""] || "🤖"} <strong>{task.agent_id || "–"}</strong>
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={onCancel}
+                className="flex-1 py-2 rounded-lg border border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-500 transition-colors"
+                disabled={dispatching}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={onConfirm}
+                disabled={dispatching}
+                className="flex-1 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold transition-colors flex items-center justify-center gap-2"
+              >
+                {dispatching ? <Loader2 size={16} className="animate-spin" /> : null}
+                Confirmar e disparar agente
+              </button>
+            </div>
+          </>
         )}
       </div>
-
-      {/* Detail panel — overlay fixo (fora do flex, no nível raiz) */}
-      {selected && (
-        <>
-          <div
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
-            onClick={() => setSelected(null)}
-          />
-          <TaskDetailPanel
-            task={selected}
-            dependsOnTasks={(selected.depends_on ?? []).map((c: string) => taskByCode[c]).filter(Boolean)}
-            blockedByThis={(dependents[selected.code] ?? []).map(c => taskByCode[c]).filter(Boolean)}
-            onClose={() => setSelected(null)}
-          />
-        </>
-      )}
-    </>
-  );
-}
-
-function TaskCard({ task, dependsOnTasks, blockedByThis, onClick }: {
-  task: any; dependsOnTasks: any[]; blockedByThis: string[]; onClick: () => void;
-}) {
-  const projColor = PROJECT_COLORS[task.project_code] || VERTICAL_COLOR[task.vertical] || "#D4AF37";
-
-  return (
-    <button onClick={onClick}
-      className="w-full text-left bg-[#111] border border-[#D4AF37]/8 hover:border-[#D4AF37]/25 rounded-xl overflow-hidden transition-all duration-150 hover:translate-y-[-1px] hover:shadow-lg hover:shadow-black/20">
-      <div className="p-3">
-        {/* Top row */}
-        <div className="flex items-start justify-between gap-2 mb-2">
-          <div className="flex items-center gap-1.5 flex-wrap">
-            {task.code && (
-              <span className="text-[10px] font-mono text-[#D4AF37]/40">{task.code}</span>
-            )}
-            {task.priority && (
-              <span className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                style={{ backgroundColor: PRIORITY_COLOR[task.priority] }} />
-            )}
-          </div>
-          <span className="text-[10px] text-[#F5F5F5]/25 flex-shrink-0">
-            {task.agent_id ? AGENT_EMOJI[task.agent_id] : ""}
-          </span>
-        </div>
-
-        {/* Title */}
-        <p className="text-xs font-medium text-[#F5F5F5]/85 leading-snug line-clamp-2 mb-2">{task.title}</p>
-
-        {/* Dependencies */}
-        {dependsOnTasks.length > 0 && (
-          <div className="flex items-center gap-1 mb-1.5">
-            <Link2 size={9} className="text-[#F59E0B]/50" />
-            <span className="text-[10px] text-[#F59E0B]/50">
-              depende: {dependsOnTasks.map(t => t.code).join(", ")}
-            </span>
-          </div>
-        )}
-        {blockedByThis.length > 0 && (
-          <div className="flex items-center gap-1 mb-1.5">
-            <GitBranch size={9} className="text-[#7B9EA8]/50" />
-            <span className="text-[10px] text-[#7B9EA8]/50">
-              bloqueia: {blockedByThis.slice(0,2).join(", ")}{blockedByThis.length > 2 ? ` +${blockedByThis.length-2}` : ""}
-            </span>
-          </div>
-        )}
-
-        {/* Time */}
-        <p className="text-[10px] text-[#F5F5F5]/25">
-          {formatDistanceToNow(new Date(task.updated_at), { addSuffix: true, locale: ptBR })}
-        </p>
-      </div>
-
-      {/* Project color stripe */}
-      <div className="h-2 w-full mx-0 rounded-b-xl" style={{ backgroundColor: projColor }} />
-    </button>
-  );
-}
-
-function TaskDetailPanel({ task, dependsOnTasks, blockedByThis, onClose }: {
-  task: any; dependsOnTasks: any[]; blockedByThis: any[]; onClose: () => void;
-}) {
-  const projColor = PROJECT_COLORS[task.project_code] || VERTICAL_COLOR[task.vertical] || "#D4AF37";
-  const statusCol = STATUS_COLUMNS.find(s => s.key === task.status);
-
-  return (
-    <aside className="drawer-slide-in fixed top-0 right-0 h-full w-full max-w-[440px] bg-[#0D0D0D] border-l border-[#D4AF37]/15 flex flex-col overflow-y-auto z-50 shadow-2xl shadow-black/60">
-      {/* Color bar */}
-      <div className="h-1 w-full" style={{ backgroundColor: projColor }} />
-
-      {/* Header */}
-      <div className="p-5 border-b border-[#D4AF37]/10">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-2 flex-wrap">
-              {task.code && <span className="text-[10px] font-mono text-[#D4AF37]/50">{task.code}</span>}
-              {task.project_code && (
-                <span className="text-[10px] px-2 py-0.5 rounded border"
-                  style={{ color: projColor, borderColor: `${projColor}30`, backgroundColor: `${projColor}10` }}>
-                  {task.project_code}
-                </span>
-              )}
-              <span className="text-[10px] px-2 py-0.5 rounded border"
-                style={{ color: statusCol?.color, borderColor: `${statusCol?.color}30`, backgroundColor: `${statusCol?.color}10` }}>
-                {statusCol?.label}
-              </span>
-              {task.approval_status === "approved" && (
-                <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-400/10 border border-emerald-400/20 text-emerald-400">✓ Aprovado</span>
-              )}
-              {task.approval_status === "rejected" && (
-                <span className="text-[10px] px-2 py-0.5 rounded bg-red-400/10 border border-red-400/20 text-red-400">✗ Rejeitado</span>
-              )}
-            </div>
-            <h2 className="text-sm font-semibold text-[#F5F5F5] leading-snug">{task.title}</h2>
-          </div>
-          <button onClick={onClose} className="text-[#F5F5F5]/30 hover:text-[#F5F5F5] transition-colors flex-shrink-0">
-            <X size={16} />
-          </button>
-        </div>
-
-        {/* Meta */}
-        <div className="flex flex-wrap gap-3 mt-3 text-xs text-[#F5F5F5]/35">
-          {task.agent_id && <span>{AGENT_EMOJI[task.agent_id]} {task.agent_id}</span>}
-          {task.vertical && <span style={{ color: `${VERTICAL_COLOR[task.vertical]}80` }}>{task.vertical}</span>}
-          {task.priority && <span style={{ color: PRIORITY_COLOR[task.priority] }}>P{task.priority}</span>}
-          {task.execution_time_minutes && <span><Clock size={10} className="inline mr-1" />{task.execution_time_minutes}min</span>}
-        </div>
-      </div>
-
-      <div className="flex-1 overflow-y-auto p-5 space-y-5">
-        {/* Description */}
-        {task.description && (
-          <Section title="Descrição">
-            <p className="text-sm text-[#F5F5F5]/55 leading-relaxed">{task.description}</p>
-          </Section>
-        )}
-
-        {/* Detail / how it's being done */}
-        {task.detail && (
-          <Section title="Como está sendo feito">
-            <p className="text-sm text-[#F5F5F5]/55 leading-relaxed">{task.detail}</p>
-          </Section>
-        )}
-
-        {/* Feedback */}
-        {task.feedback && (
-          <Section title="Feedback do Yuri">
-            <div className="bg-[#D4AF37]/5 border border-[#D4AF37]/15 rounded-xl p-3">
-              <p className="text-sm text-[#F5F5F5]/65 leading-relaxed">{task.feedback}</p>
-            </div>
-          </Section>
-        )}
-
-        {/* Dependencies */}
-        {dependsOnTasks.length > 0 && (
-          <Section title="Depende de">
-            <div className="space-y-2">
-              {dependsOnTasks.map(dep => (
-                <DepCard key={dep.id} task={dep} type="depends" />
-              ))}
-            </div>
-          </Section>
-        )}
-
-        {blockedByThis.length > 0 && (
-          <Section title="Desbloqueia">
-            <div className="space-y-2">
-              {blockedByThis.map(dep => (
-                <DepCard key={dep.id} task={dep} type="blocks" />
-              ))}
-            </div>
-          </Section>
-        )}
-
-        {/* Deliverable */}
-        {task.deliverable_url && (
-          <Section title="Entregável">
-            <a href={task.deliverable_url} target="_blank" rel="noopener noreferrer"
-              className="flex items-center gap-2 text-xs text-[#D4AF37]/60 hover:text-[#D4AF37] transition-colors">
-              <ExternalLink size={12} /> {task.deliverable_url.replace("https://","").slice(0,50)}
-            </a>
-          </Section>
-        )}
-
-        {/* Timestamps */}
-        <div className="text-[10px] text-[#F5F5F5]/20 space-y-1 pt-2 border-t border-[#D4AF37]/8">
-          <p>Criado: {new Date(task.created_at).toLocaleDateString("pt-BR")}</p>
-          <p>Atualizado: {formatDistanceToNow(new Date(task.updated_at), { addSuffix: true, locale: ptBR })}</p>
-          {task.completed_at && <p>Concluído: {new Date(task.completed_at).toLocaleDateString("pt-BR")}</p>}
-        </div>
-      </div>
-    </aside>
-  );
-}
-
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <p className="text-[10px] font-semibold text-[#D4AF37]/45 uppercase tracking-widest mb-2">{title}</p>
-      {children}
     </div>
   );
 }
 
-function DepCard({ task, type }: { task: any; type: "depends" | "blocks" }) {
-  const statusCol = STATUS_COLUMNS.find(s => s.key === task.status);
+// ── Task Card ──────────────────────────────────────────────────────────────
+function TaskCard({
+  task, colKey, onMove, onOpen,
+}: {
+  task: Task;
+  colKey: string;
+  onMove: (task: Task, direction: "next" | "prev") => void;
+  onOpen: (task: Task) => void;
+}) {
+  const col = colOf(colKey)!;
+  const has_next = !!nextCol(colKey);
+  const has_prev = !!prevCol(colKey);
+  const projColor = PROJECT_COLORS[task.project_code || ""] || "#71717A";
+
   return (
-    <div className="flex items-center gap-2 bg-[#111] border border-[#D4AF37]/8 rounded-lg p-2.5">
-      {type === "depends"
-        ? <Link2 size={11} className="text-[#F59E0B]/50 flex-shrink-0" />
-        : <GitBranch size={11} className="text-[#7B9EA8]/50 flex-shrink-0" />}
-      <div className="flex-1 min-w-0">
-        <span className="text-[10px] font-mono text-[#D4AF37]/40 mr-1">{task.code}</span>
-        <span className="text-xs text-[#F5F5F5]/60 truncate">{task.title}</span>
+    <div
+      onClick={() => onOpen(task)}
+      className={`group relative bg-zinc-900/80 border border-zinc-800 rounded-lg p-3 cursor-pointer hover:border-opacity-80 transition-all hover:shadow-lg`}
+      style={{ "--hover-border": col.color } as React.CSSProperties}
+      onMouseEnter={e => (e.currentTarget.style.borderColor = col.color + "80")}
+      onMouseLeave={e => (e.currentTarget.style.borderColor = "")}
+    >
+      {/* Header row */}
+      <div className="flex items-center justify-between mb-1.5">
+        <span className="font-mono text-xs text-zinc-500">{task.code}</span>
+        {task.priority && (
+          <span className={`text-xs ${PRIORITY_COLOR[task.priority]}`}>
+            ●{" "}{PRIORITY_LABEL[task.priority]}
+          </span>
+        )}
       </div>
-      <span className="text-[10px] flex-shrink-0" style={{ color: statusCol?.color }}>{statusCol?.label}</span>
+
+      {/* Title */}
+      <p className="text-sm text-white font-medium line-clamp-2 mb-2">{task.title}</p>
+
+      {/* Agent + vertical */}
+      <div className="flex items-center gap-2 flex-wrap">
+        {task.agent_id && (
+          <span className="text-xs text-zinc-400">
+            {AGENT_EMOJI[task.agent_id] || "🤖"} {task.agent_id}
+          </span>
+        )}
+        {task.project_code && (
+          <span
+            className="text-xs px-1.5 py-0.5 rounded font-mono"
+            style={{ background: projColor + "22", color: projColor }}
+          >
+            {task.project_code}
+          </span>
+        )}
+        {task.vertical && (
+          <span className="text-xs text-zinc-500">{task.vertical}</span>
+        )}
+      </div>
+
+      <p className="text-xs text-zinc-600 mt-2">{relTime(task.updated_at)}</p>
+
+      {/* Move buttons */}
+      <div
+        className="absolute bottom-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
+        onClick={e => e.stopPropagation()}
+      >
+        {has_prev && (
+          <button
+            onClick={() => onMove(task, "prev")}
+            className="p-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white transition-colors"
+            title={`← ${prevCol(colKey)?.label}`}
+          >
+            <ChevronLeft size={14} />
+          </button>
+        )}
+        {has_next && (
+          <button
+            onClick={() => onMove(task, "next")}
+            className="p-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white transition-colors"
+            title={`→ ${nextCol(colKey)?.label}`}
+          >
+            <ChevronRight size={14} />
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Drawer ─────────────────────────────────────────────────────────────────
+function TaskDrawer({
+  task, onClose, onStartTask, onMoveToReview,
+}: {
+  task: Task;
+  onClose: () => void;
+  onStartTask: (task: Task) => void;
+  onMoveToReview: (task: Task) => void;
+}) {
+  const [notes, setNotes] = useState(task.notes || "");
+  const [saving, setSaving] = useState(false);
+  const projColor = PROJECT_COLORS[task.project_code || ""] || "#71717A";
+
+  async function saveNotes() {
+    setSaving(true);
+    await fetch(`${SB_URL}/rest/v1/tasks?code=eq.${task.code}`, {
+      method: "PATCH",
+      headers: { apikey: SVC, Authorization: `Bearer ${SVC}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ notes }),
+    });
+    setSaving(false);
+  }
+
+  return (
+    <div className="fixed inset-0 z-40 flex justify-end" onClick={onClose}>
+      <div
+        className="w-full max-w-lg h-full bg-zinc-950 border-l border-zinc-800 p-6 overflow-y-auto flex flex-col gap-4"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-start justify-between">
+          <div>
+            <span className="font-mono text-xs text-zinc-500">{task.code}</span>
+            <h2 className="text-white text-lg font-bold mt-0.5">{task.title}</h2>
+          </div>
+          <button onClick={onClose} className="text-zinc-500 hover:text-white p-1"><X size={18} /></button>
+        </div>
+
+        {/* Meta */}
+        <div className="flex flex-wrap gap-2 text-sm">
+          {task.agent_id && (
+            <span className="bg-zinc-800 px-2 py-1 rounded text-zinc-300">
+              {AGENT_EMOJI[task.agent_id] || "🤖"} {task.agent_id}
+            </span>
+          )}
+          {task.project_code && (
+            <span className="px-2 py-1 rounded font-mono text-xs"
+              style={{ background: projColor + "22", color: projColor }}>
+              {task.project_code}
+            </span>
+          )}
+          {task.vertical && (
+            <span className="bg-zinc-800 px-2 py-1 rounded text-zinc-400 text-xs">{task.vertical}</span>
+          )}
+          {task.priority && (
+            <span className={`px-2 py-1 rounded text-xs ${PRIORITY_COLOR[task.priority]} bg-zinc-800`}>
+              Prioridade {PRIORITY_LABEL[task.priority]}
+            </span>
+          )}
+        </div>
+
+        {/* Description */}
+        {task.description && (
+          <div className="bg-zinc-900 rounded-lg p-3">
+            <p className="text-xs text-zinc-500 mb-1 uppercase tracking-wide">Descrição</p>
+            <p className="text-sm text-zinc-300 whitespace-pre-wrap">{task.description}</p>
+          </div>
+        )}
+
+        {/* Notes */}
+        <div>
+          <p className="text-xs text-zinc-500 mb-1 uppercase tracking-wide">Notas</p>
+          <textarea
+            value={notes}
+            onChange={e => setNotes(e.target.value)}
+            rows={4}
+            className="w-full bg-zinc-900 border border-zinc-700 rounded-lg p-3 text-sm text-zinc-300 resize-none focus:outline-none focus:border-zinc-500"
+            placeholder="Adicione notas sobre esta task..."
+          />
+          <button
+            onClick={saveNotes}
+            disabled={saving}
+            className="mt-1 text-xs text-zinc-500 hover:text-white transition-colors"
+          >
+            {saving ? "Salvando..." : "Salvar notas"}
+          </button>
+        </div>
+
+        {/* Timestamps */}
+        <div className="text-xs text-zinc-600 space-y-1">
+          {task.updated_at && <p>Atualizado: {relTime(task.updated_at)}</p>}
+          {task.completed_at && <p>Concluído: {relTime(task.completed_at)}</p>}
+        </div>
+
+        {/* Deliverable */}
+        {task.deliverable_url && (
+          <a
+            href={task.deliverable_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 text-sm text-blue-400 hover:text-blue-300 transition-colors"
+          >
+            <ExternalLink size={14} />
+            Ver entregável
+          </a>
+        )}
+
+        {/* Actions */}
+        <div className="flex gap-3 mt-auto pt-4 border-t border-zinc-800">
+          {task.status === "backlog" && (
+            <button
+              onClick={() => onStartTask(task)}
+              className="flex-1 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold text-sm transition-colors"
+            >
+              ▶ Iniciar task
+            </button>
+          )}
+          {task.status === "in_progress" && (
+            <button
+              onClick={() => onMoveToReview(task)}
+              className="flex-1 py-2 rounded-lg bg-yellow-600 hover:bg-yellow-500 text-white font-semibold text-sm transition-colors"
+            >
+              🔍 Mover para Review
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Main Page ──────────────────────────────────────────────────────────────
+export default function TasksPage() {
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filterAgent, setFilterAgent] = useState("");
+  const [filterVertical, setFilterVertical] = useState("");
+  const [search, setSearch] = useState("");
+  const [showDone, setShowDone] = useState(false);
+
+  // Modal/Drawer state
+  const [confirmTask, setConfirmTask] = useState<Task | null>(null);
+  const [dispatching, setDispatching] = useState(false);
+  const [dispatchDone, setDispatchDone] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+
+  // Auto-refresh
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  const loadTasks = useCallback(async () => {
+    const { data } = await supabase
+      .from("tasks")
+      .select("*")
+      .order("updated_at", { ascending: false });
+    if (data) setTasks(data as Task[]);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    loadTasks();
+    intervalRef.current = setInterval(loadTasks, 60_000);
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+  }, [loadTasks]);
+
+  // Derived data
+  const agents = Array.from(new Set(tasks.map(t => t.agent_id).filter(Boolean))) as string[];
+  const verticals = Array.from(new Set(tasks.map(t => t.vertical).filter(Boolean))) as string[];
+
+  const filtered = tasks.filter(t => {
+    if (filterAgent && t.agent_id !== filterAgent) return false;
+    if (filterVertical && t.vertical !== filterVertical) return false;
+    if (search) {
+      const q = search.toLowerCase();
+      if (
+        !t.title.toLowerCase().includes(q) &&
+        !(t.code || "").toLowerCase().includes(q) &&
+        !(t.agent_id || "").toLowerCase().includes(q)
+      ) return false;
+    }
+    return true;
+  });
+
+  const byCol = (key: string) => filtered.filter(t => t.status === key);
+
+  const inProgress = filtered.filter(t => t.status === "in_progress").length;
+  const done = filtered.filter(t => t.status === "done").length;
+
+  // Move task locally + patch Supabase
+  async function patchStatus(task: Task, newStatus: string) {
+    setTasks(prev => prev.map(t => t.id === task.id ? { ...t, status: newStatus, updated_at: new Date().toISOString() } : t));
+    await fetch(`${SB_URL}/rest/v1/tasks?code=eq.${task.code}`, {
+      method: "PATCH",
+      headers: { apikey: SVC, Authorization: `Bearer ${SVC}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ status: newStatus, updated_at: new Date().toISOString() }),
+    });
+  }
+
+  function handleMove(task: Task, direction: "next" | "prev") {
+    const target = direction === "next" ? nextCol(task.status) : prevCol(task.status);
+    if (!target) return;
+
+    // Special: backlog → in_progress requires confirmation + dispatch
+    if (task.status === "backlog" && target.key === "in_progress") {
+      setDispatchDone(false);
+      setConfirmTask(task);
+      return;
+    }
+
+    patchStatus(task, target.key);
+  }
+
+  async function handleConfirmDispatch() {
+    if (!confirmTask) return;
+    setDispatching(true);
+    try {
+      await patchStatus(confirmTask, "in_progress");
+      await fetch("/api/dispatch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          agentId: confirmTask.agent_id,
+          task: confirmTask.title,
+          taskCode: confirmTask.code,
+        }),
+      });
+      setDispatchDone(true);
+      setTimeout(() => setConfirmTask(null), 2500);
+    } finally {
+      setDispatching(false);
+    }
+  }
+
+  const visibleCols = showDone ? COLUMNS : COLUMNS.filter(c => c.key !== "done");
+
+  return (
+    <div className="min-h-screen bg-black text-white flex flex-col">
+      {/* Modals */}
+      {confirmTask && (
+        <ConfirmDispatchModal
+          task={confirmTask}
+          onConfirm={handleConfirmDispatch}
+          onCancel={() => setConfirmTask(null)}
+          dispatching={dispatching}
+          done={dispatchDone}
+        />
+      )}
+      {selectedTask && (
+        <TaskDrawer
+          task={selectedTask}
+          onClose={() => setSelectedTask(null)}
+          onStartTask={t => { setSelectedTask(null); setDispatchDone(false); setConfirmTask(t); }}
+          onMoveToReview={t => { patchStatus(t, "review"); setSelectedTask(null); }}
+        />
+      )}
+
+      {/* Header */}
+      <div className="border-b border-zinc-800 px-6 py-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+          <div>
+            <h1 className="text-2xl font-bold">Fila de Tarefas</h1>
+            <p className="text-sm text-zinc-500 mt-0.5">
+              {filtered.length} tarefas · {inProgress} em andamento · {done} concluídas
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={loadTasks}
+              className="p-2 rounded-lg border border-zinc-800 text-zinc-500 hover:text-white hover:border-zinc-600 transition-colors"
+              title="Atualizar"
+            >
+              <RefreshCw size={16} />
+            </button>
+            <button
+              onClick={() => setShowDone(s => !s)}
+              className={`text-xs px-3 py-1.5 rounded-lg border transition-colors ${
+                showDone
+                  ? "border-green-600 text-green-400 bg-green-600/10"
+                  : "border-zinc-700 text-zinc-500 hover:border-zinc-500"
+              }`}
+            >
+              {showDone ? "✓ Mostrar concluídas" : "Mostrar concluídas"}
+            </button>
+          </div>
+        </div>
+
+        {/* Filters */}
+        <div className="flex flex-wrap gap-2">
+          <div className="relative">
+            <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-500" />
+            <input
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Buscar..."
+              className="pl-8 pr-3 py-1.5 text-sm bg-zinc-900 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-500 w-48"
+            />
+          </div>
+          <select
+            value={filterAgent}
+            onChange={e => setFilterAgent(e.target.value)}
+            className="text-sm bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-1.5 text-zinc-300 focus:outline-none"
+          >
+            <option value="">Todos os agentes</option>
+            {agents.map(a => (
+              <option key={a} value={a}>{AGENT_EMOJI[a] || "🤖"} {a}</option>
+            ))}
+          </select>
+          <select
+            value={filterVertical}
+            onChange={e => setFilterVertical(e.target.value)}
+            className="text-sm bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-1.5 text-zinc-300 focus:outline-none"
+          >
+            <option value="">Todas as verticais</option>
+            {verticals.map(v => (
+              <option key={v} value={v}>{v}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* Kanban Board */}
+      {loading ? (
+        <div className="flex-1 flex items-center justify-center">
+          <Loader2 size={32} className="animate-spin text-zinc-600" />
+        </div>
+      ) : (
+        <div className="flex-1 flex overflow-x-auto gap-4 p-6 pb-8">
+          {visibleCols.map(col => {
+            const cards = byCol(col.key);
+            return (
+              <div key={col.key} className="flex flex-col min-w-[280px] max-w-[320px] w-80 shrink-0">
+                {/* Column header */}
+                <div className={`rounded-t-lg px-3 py-2 mb-2 ${col.bg} border-t-2`}
+                  style={{ borderColor: col.color }}>
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-sm" style={{ color: col.color }}>
+                      {col.label}
+                    </span>
+                    <span className="text-xs text-zinc-500 bg-zinc-800 px-2 py-0.5 rounded-full">
+                      {cards.length}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Cards */}
+                <div className="flex-1 overflow-y-auto space-y-2 pr-1 max-h-[calc(100vh-220px)]"
+                  style={{ scrollbarWidth: "thin" }}>
+                  {cards.length === 0 ? (
+                    <div className="text-center py-8 text-zinc-700 text-sm">Vazio</div>
+                  ) : (
+                    cards.map(task => (
+                      <TaskCard
+                        key={task.id}
+                        task={task}
+                        colKey={col.key}
+                        onMove={handleMove}
+                        onOpen={setSelectedTask}
+                      />
+                    ))
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
