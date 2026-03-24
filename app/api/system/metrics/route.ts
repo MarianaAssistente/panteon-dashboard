@@ -25,7 +25,7 @@ export async function GET() {
     // Verificar se métricas têm menos de 60s (agente ativo)
     const updatedAt = new Date(flat.updated_at).getTime();
     const ageSeconds = Math.round((Date.now() - updatedAt) / 1000);
-    if (ageSeconds > 60) {
+    if (ageSeconds > 90) {
       return NextResponse.json({ error: "VPS metrics unavailable" }, { status: 503 });
     }
 
