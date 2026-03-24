@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
-import { Canvas } from "@react-three/fiber";
+import { useEffect, useState, Suspense, useRef } from "react";
+import { Canvas, useFrame } from "@react-three/fiber";
 import { OrbitControls, Html } from "@react-three/drei";
+import * as THREE from "three";
 
 const SUPABASE_URL = "https://duogqvusxueetapcvsfp.supabase.co";
 const ANON_KEY =
@@ -35,6 +36,107 @@ interface AgentData {
   activeTask?: string;
 }
 
+function VoxelCharacter({
+  skinColor,
+  bodyColor,
+  hairColor = "#3a2a1a",
+  status,
+  position,
+  scale = 1.0,
+}: {
+  skinColor: string;
+  bodyColor: string;
+  hairColor?: string;
+  status: string;
+  position: [number, number, number];
+  scale?: number;
+}) {
+  const groupRef = useRef<THREE.Group>(null);
+  const headRef = useRef<THREE.Mesh>(null);
+  const leftArmRef = useRef<THREE.Mesh>(null);
+  const rightArmRef = useRef<THREE.Mesh>(null);
+  const lightRef = useRef<THREE.PointLight>(null);
+
+  useFrame(({ clock }) => {
+    const t = clock.getElapsedTime();
+    if (!groupRef.current) return;
+
+    if (status === "working") {
+      const intensity = scale > 1 ? 0.5 : 0.4; // Mariana digita mais intensamente
+      if (leftArmRef.current) leftArmRef.current.rotation.x = Math.sin(t * 4 * (scale > 1 ? 1.4 : 1)) * (0.3 * (scale > 1 ? 1.3 : 1));
+      if (rightArmRef.current) rightArmRef.current.rotation.x = Math.sin(t * 4 * (scale > 1 ? 1.4 : 1) + Math.PI) * (0.3 * (scale > 1 ? 1.3 : 1));
+      if (headRef.current) headRef.current.rotation.x = 0.2;
+      if (lightRef.current) lightRef.current.intensity = intensity + Math.sin(t * 3) * 0.3;
+      groupRef.current.position.set(position[0], position[1], position[2]);
+    } else if (status === "idle") {
+      groupRef.current.position.set(position[0], position[1] + Math.sin(t * 1.5) * 0.05, position[2]);
+      if (headRef.current) headRef.current.rotation.y = Math.sin(t * 0.8) * 0.3;
+      if (lightRef.current) lightRef.current.intensity = 0.3;
+    } else {
+      groupRef.current.position.set(position[0], position[1] + Math.sin(t * 0.5) * 0.02, position[2]);
+      if (lightRef.current) lightRef.current.intensity = 0;
+    }
+  });
+
+  return (
+    <group ref={groupRef} position={position} scale={[scale, scale, scale]}>
+      {/* Luz de status */}
+      {status === "working" && (
+        <pointLight ref={lightRef} color="#22c55e" intensity={0.5} distance={3} position={[0, 1.8, 0]} />
+      )}
+      {status === "idle" && (
+        <pointLight ref={lightRef} color="#f59e0b" intensity={0.3} distance={2.5} position={[0, 1.8, 0]} />
+      )}
+
+      {/* Cabeça */}
+      <mesh ref={headRef} position={[0, 1.5, 0]} castShadow>
+        <boxGeometry args={[0.5, 0.5, 0.5]} />
+        <meshStandardMaterial color={skinColor} roughness={0.6} />
+      </mesh>
+      {/* Cabelo/topo */}
+      <mesh position={[0, 1.78, 0]}>
+        <boxGeometry args={[0.52, 0.12, 0.52]} />
+        <meshStandardMaterial color={hairColor} />
+      </mesh>
+      {/* Olho esquerdo */}
+      <mesh position={[-0.12, 1.52, 0.26]}>
+        <boxGeometry args={[0.1, 0.08, 0.02]} />
+        <meshStandardMaterial color="#1a1a1a" />
+      </mesh>
+      {/* Olho direito */}
+      <mesh position={[0.12, 1.52, 0.26]}>
+        <boxGeometry args={[0.1, 0.08, 0.02]} />
+        <meshStandardMaterial color="#1a1a1a" />
+      </mesh>
+      {/* Corpo */}
+      <mesh position={[0, 0.95, 0]} castShadow>
+        <boxGeometry args={[0.55, 0.7, 0.3]} />
+        <meshStandardMaterial color={bodyColor} roughness={0.7} />
+      </mesh>
+      {/* Braço esquerdo */}
+      <mesh ref={leftArmRef} position={[-0.38, 0.95, 0]}>
+        <boxGeometry args={[0.2, 0.65, 0.25]} />
+        <meshStandardMaterial color={skinColor} roughness={0.6} />
+      </mesh>
+      {/* Braço direito */}
+      <mesh ref={rightArmRef} position={[0.38, 0.95, 0]}>
+        <boxGeometry args={[0.2, 0.65, 0.25]} />
+        <meshStandardMaterial color={skinColor} roughness={0.6} />
+      </mesh>
+      {/* Perna esquerda */}
+      <mesh position={[-0.15, 0.3, 0]} castShadow>
+        <boxGeometry args={[0.22, 0.6, 0.25]} />
+        <meshStandardMaterial color="#0f1f2f" />
+      </mesh>
+      {/* Perna direita */}
+      <mesh position={[0.15, 0.3, 0]} castShadow>
+        <boxGeometry args={[0.22, 0.6, 0.25]} />
+        <meshStandardMaterial color="#0f1f2f" />
+      </mesh>
+    </group>
+  );
+}
+
 interface RoomProps {
   position: [number, number, number];
   size?: number;
@@ -45,9 +147,12 @@ interface RoomProps {
   onClick: () => void;
   status: string;
   agentColor: string;
+  bodyColor: string;
+  hairColor?: string;
+  charScale?: number;
 }
 
-function Room({ position, size = 10, floorColor = "#C8A97A", label, role, isCEO = false, onClick, status, agentColor }: RoomProps) {
+function Room({ position, size = 10, floorColor = "#C8A97A", label, role, isCEO = false, onClick, status, agentColor, bodyColor, hairColor, charScale = 1.0 }: RoomProps) {
   const statusColor = STATUS_COLORS[status] || "#9ca3af";
   const wallColor = "#7A7A7A";
   const wallColorSide = "#6A6A6A";
@@ -157,6 +262,16 @@ function Room({ position, size = 10, floorColor = "#C8A97A", label, role, isCEO 
         </div>
       </Html>
 
+      {/* Personagem Voxel */}
+      <VoxelCharacter
+        skinColor="#F5CBA7"
+        bodyColor={bodyColor}
+        hairColor={hairColor}
+        status={status}
+        position={[0, 0.3, -half + 3]}
+        scale={charScale}
+      />
+
       {/* Nome do agente */}
       <Html position={[0, 4.8, 0]} center>
         <div
@@ -230,6 +345,9 @@ function OfficeScene({ agents, onSelect }: { agents: AgentData[]; onSelect: (a: 
             onClick={() => onSelect(a)}
             status={a.status}
             agentColor={a.color}
+            bodyColor="#1a1a4a"
+            hairColor="#5a2a10"
+            charScale={1.2}
           />
         );
       })()}
@@ -245,6 +363,7 @@ function OfficeScene({ agents, onSelect }: { agents: AgentData[]; onSelect: (a: 
             onClick={() => onSelect(a)}
             status={a.status}
             agentColor={a.color}
+            bodyColor="#4a2a6a"
           />
         );
       })()}
@@ -260,6 +379,7 @@ function OfficeScene({ agents, onSelect }: { agents: AgentData[]; onSelect: (a: 
             onClick={() => onSelect(a)}
             status={a.status}
             agentColor={a.color}
+            bodyColor="#6a2a0a"
           />
         );
       })()}
@@ -275,6 +395,7 @@ function OfficeScene({ agents, onSelect }: { agents: AgentData[]; onSelect: (a: 
             onClick={() => onSelect(a)}
             status={a.status}
             agentColor={a.color}
+            bodyColor="#6a1a3a"
           />
         );
       })()}
@@ -290,6 +411,7 @@ function OfficeScene({ agents, onSelect }: { agents: AgentData[]; onSelect: (a: 
             onClick={() => onSelect(a)}
             status={a.status}
             agentColor={a.color}
+            bodyColor="#1a4a2a"
           />
         );
       })()}
@@ -305,6 +427,7 @@ function OfficeScene({ agents, onSelect }: { agents: AgentData[]; onSelect: (a: 
             onClick={() => onSelect(a)}
             status={a.status}
             agentColor={a.color}
+            bodyColor="#0a3a4a"
           />
         );
       })()}
@@ -320,6 +443,7 @@ function OfficeScene({ agents, onSelect }: { agents: AgentData[]; onSelect: (a: 
             onClick={() => onSelect(a)}
             status={a.status}
             agentColor={a.color}
+            bodyColor="#4a1a1a"
           />
         );
       })()}
@@ -335,6 +459,7 @@ function OfficeScene({ agents, onSelect }: { agents: AgentData[]; onSelect: (a: 
             onClick={() => onSelect(a)}
             status={a.status}
             agentColor={a.color}
+            bodyColor="#3a1a6a"
           />
         );
       })()}
