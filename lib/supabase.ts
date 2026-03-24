@@ -25,6 +25,7 @@ export interface Agent {
 
 export interface Task {
   id: string
+  code?: string
   title: string
   description?: string
   agent_id?: string

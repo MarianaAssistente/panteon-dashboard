@@ -96,7 +96,7 @@ export default function ApprovalCard({ task }: ApprovalCardProps) {
   const handleAdjust = () => {
     if (!showFeedback) { setShowFeedback("adjust"); return; }
     startTransition(async () => {
-      await adjustTask(task.id, feedback);
+      await adjustTask(task.id, feedback, task.agents?.id ?? "", task.code ?? "");
       setDone(true);
     });
   };
@@ -104,7 +104,7 @@ export default function ApprovalCard({ task }: ApprovalCardProps) {
   const handleReject = () => {
     if (!showFeedback) { setShowFeedback("reject"); return; }
     startTransition(async () => {
-      await rejectTask(task.id, feedback);
+      await rejectTask(task.id, feedback, task.agents?.id ?? "", task.code ?? "");
       setDone(true);
     });
   };

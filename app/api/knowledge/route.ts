@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase-server";
+import { supabaseAdmin } from "@/lib/supabase-server";
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const supabase = createClient();
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from("knowledge")
       .insert(body)
       .select("*")
@@ -22,8 +21,7 @@ export async function PATCH(req: NextRequest) {
     const body = await req.json();
     const { id, ...updates } = body;
     if (!id) return NextResponse.json({ error: "id is required" }, { status: 400 });
-    const supabase = createClient();
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from("knowledge")
       .update(updates)
       .eq("id", id)
