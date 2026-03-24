@@ -127,12 +127,13 @@ function ConfirmDispatchModal({
 
 // ── Task Card ──────────────────────────────────────────────────────────────
 function TaskCard({
-  task, colKey, onMove, onOpen,
+  task, colKey, onMove, onOpen, onReviewAction,
 }: {
   task: Task;
   colKey: string;
   onMove: (task: Task, direction: "next" | "prev") => void;
   onOpen: (task: Task) => void;
+  onReviewAction?: (task: Task, action: "approve" | "adjust" | "reject") => void;
 }) {
   const col = colOf(colKey)!;
   const has_next = !!nextCol(colKey);
@@ -182,30 +183,57 @@ function TaskCard({
 
       <p className="text-xs text-zinc-600 mt-2">{relTime(task.updated_at)}</p>
 
-      {/* Move buttons */}
-      <div
-        className="absolute bottom-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
-        onClick={e => e.stopPropagation()}
-      >
-        {has_prev && (
+      {/* Botões de Review — aparecem sempre nos cards de review */}
+      {colKey === "review" && onReviewAction ? (
+        <div className="flex gap-1.5 mt-3" onClick={e => e.stopPropagation()}>
           <button
-            onClick={() => onMove(task, "prev")}
-            className="p-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white transition-colors"
-            title={`← ${prevCol(colKey)?.label}`}
+            onClick={() => onReviewAction(task, "approve")}
+            className="flex-1 text-xs py-1.5 rounded-lg bg-green-600/20 hover:bg-green-600/40 text-green-400 border border-green-600/40 font-medium transition-colors"
+            title="Aprovar e concluir"
           >
-            <ChevronLeft size={14} />
+            ✅ Aprovar
           </button>
-        )}
-        {has_next && (
           <button
-            onClick={() => onMove(task, "next")}
-            className="p-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white transition-colors"
-            title={`→ ${nextCol(colKey)?.label}`}
+            onClick={() => onReviewAction(task, "adjust")}
+            className="flex-1 text-xs py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/40 text-amber-400 border border-amber-500/40 font-medium transition-colors"
+            title="Solicitar ajuste"
           >
-            <ChevronRight size={14} />
+            ↩ Ajustar
           </button>
-        )}
-      </div>
+          <button
+            onClick={() => onReviewAction(task, "reject")}
+            className="flex-1 text-xs py-1.5 rounded-lg bg-red-600/20 hover:bg-red-600/40 text-red-400 border border-red-600/40 font-medium transition-colors"
+            title="Reprovar"
+          >
+            ❌ Reprovar
+          </button>
+        </div>
+      ) : (
+        /* Move buttons para outras colunas */
+        <div
+          className="absolute bottom-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
+          onClick={e => e.stopPropagation()}
+        >
+          {has_prev && (
+            <button
+              onClick={() => onMove(task, "prev")}
+              className="p-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white transition-colors"
+              title={`← ${prevCol(colKey)?.label}`}
+            >
+              <ChevronLeft size={14} />
+            </button>
+          )}
+          {has_next && (
+            <button
+              onClick={() => onMove(task, "next")}
+              className="p-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white transition-colors"
+              title={`→ ${nextCol(colKey)?.label}`}
+            >
+              <ChevronRight size={14} />
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -369,6 +397,9 @@ export default function TasksPage() {
   const [dispatchDone, setDispatchDone] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [reviewConfirmTask, setReviewConfirmTask] = useState<Task | null>(null);
+  const [reviewActionTask, setReviewActionTask] = useState<Task | null>(null);
+  const [reviewAction, setReviewAction] = useState<"adjust" | "reject" | null>(null);
+  const [reviewFeedback, setReviewFeedback] = useState("");
 
   // Auto-refresh
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -463,6 +494,38 @@ export default function TasksPage() {
     }
   }
 
+  function handleReviewAction(task: Task, action: "approve" | "adjust" | "reject") {
+    if (action === "approve") {
+      patchStatus(task, "done");
+    } else {
+      setReviewActionTask(task);
+      setReviewAction(action);
+      setReviewFeedback("");
+    }
+  }
+
+  async function confirmReviewAction() {
+    if (!reviewActionTask || !reviewAction) return;
+    const targetStatus = reviewAction === "adjust" ? "in_progress" : "backlog";
+    const actionLabel = reviewAction === "adjust" ? "Ajuste solicitado" : "Reprovado";
+    await patchStatus(reviewActionTask, targetStatus);
+    // Notificar agente com o feedback
+    if (reviewFeedback.trim()) {
+      await fetch("/api/dispatch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          agentId: reviewActionTask.agent_id,
+          task: `[${actionLabel} por Yuri — ${reviewActionTask.code}]\n\nTask: "${reviewActionTask.title}"\n\nFeedback: ${reviewFeedback}`,
+          taskCode: reviewActionTask.code,
+        }),
+      });
+    }
+    setReviewActionTask(null);
+    setReviewAction(null);
+    setReviewFeedback("");
+  }
+
   const visibleCols = showDone ? COLUMNS : COLUMNS.filter(c => c.key !== "done");
 
   return (
@@ -491,6 +554,43 @@ export default function TasksPage() {
                 setReviewConfirmTask(null);
               }} className="px-4 py-2 bg-yellow-500 hover:bg-yellow-400 text-black rounded-lg text-sm font-semibold transition-colors">
                 Confirmar — trabalho concluído
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: ajuste ou reprovação de review */}
+      {reviewActionTask && reviewAction && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+          <div className={`bg-zinc-900 border rounded-xl p-6 w-full max-w-md shadow-2xl ${reviewAction === "reject" ? "border-red-500/40" : "border-amber-500/40"}`}>
+            <h2 className={`text-base font-bold mb-1 ${reviewAction === "reject" ? "text-red-400" : "text-amber-400"}`}>
+              {reviewAction === "adjust" ? "↩ Solicitar Ajuste" : "❌ Reprovar Task"}
+            </h2>
+            <p className="text-sm text-zinc-400 mb-4">
+              Task: <span className="text-white font-medium">{reviewActionTask.title}</span>
+              <br />
+              <span className="text-xs text-zinc-500">
+                {reviewAction === "adjust"
+                  ? "A task voltará para Em Progresso e o agente será notificado com seu feedback."
+                  : "A task voltará para Backlog. O agente receberá a justificativa."}
+              </span>
+            </p>
+            <textarea
+              value={reviewFeedback}
+              onChange={e => setReviewFeedback(e.target.value)}
+              rows={4}
+              placeholder={reviewAction === "adjust" ? "Descreva o que precisa ser ajustado..." : "Justifique a reprovação..."}
+              className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white placeholder-zinc-600 focus:outline-none resize-none mb-4"
+            />
+            <div className="flex gap-3 justify-end">
+              <button onClick={() => { setReviewActionTask(null); setReviewAction(null); }}
+                className="px-4 py-2 bg-zinc-700 hover:bg-zinc-600 rounded-lg text-sm transition-colors">
+                Cancelar
+              </button>
+              <button onClick={confirmReviewAction}
+                className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${reviewAction === "reject" ? "bg-red-600 hover:bg-red-500 text-white" : "bg-amber-500 hover:bg-amber-400 text-black"}`}>
+                {reviewAction === "adjust" ? "↩ Solicitar Ajuste" : "❌ Confirmar Reprovação"}
               </button>
             </div>
           </div>
@@ -617,6 +717,7 @@ export default function TasksPage() {
                         colKey={col.key}
                         onMove={handleMove}
                         onOpen={setSelectedTask}
+                        onReviewAction={handleReviewAction}
                       />
                     ))
                   )}
