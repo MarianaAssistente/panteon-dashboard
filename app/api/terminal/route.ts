@@ -1,46 +1,39 @@
 import { NextResponse } from "next/server";
-import { exec } from "child_process";
-import { promisify } from "util";
-
-const execAsync = promisify(exec);
-
-const ALLOWLIST: Record<string, string> = {
-  "status":       "systemctl status openclaw 2>&1 | head -30 || echo 'openclaw não é serviço systemd'",
-  "crons":        "crontab -l 2>/dev/null || echo 'sem crontab'",
-  "logs-relay":   "tail -50 /tmp/gateway-relay.log 2>/dev/null || echo 'sem log de relay'",
-  "logs-metrics": "tail -30 /tmp/push-metrics.log 2>/dev/null || echo 'sem log de métricas'",
-  "ps-agents":    "ps aux | grep -E 'openclaw|node|python3' | grep -v grep | head -20",
-  "disk":         "df -h / /home 2>/dev/null",
-  "memory":       "free -h",
-  "uptime":       "uptime && echo '' && who",
-  "network":      "ss -tlnp 2>/dev/null | head -20",
-  "log-today":    "journalctl --since today --no-pager -n 50 2>/dev/null || tail -50 /tmp/push-metrics.log 2>/dev/null || echo 'sem logs disponíveis'",
-};
 
 export const dynamic = "force-dynamic";
+
+const RELAY_URL = process.env.RELAY_URL!;
+const RELAY_SECRET = process.env.RELAY_SECRET!;
 
 export async function POST(request: Request) {
   const { command } = await request.json();
 
-  if (!command || !ALLOWLIST[command]) {
-    return NextResponse.json({ error: "Comando não permitido." }, { status: 403 });
+  if (!command) {
+    return NextResponse.json({ error: "Comando não informado." }, { status: 400 });
   }
 
   try {
-    const { stdout, stderr } = await execAsync(ALLOWLIST[command], {
-      timeout: 8000,
-      maxBuffer: 1024 * 64,
+    const res = await fetch(`${RELAY_URL}/terminal`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Relay-Secret": RELAY_SECRET,
+      },
+      body: JSON.stringify({ command }),
+      signal: AbortSignal.timeout(10000),
     });
-    return NextResponse.json({
-      output: (stdout + stderr).trim() || "(sem saída)",
-      command,
-      timestamp: new Date().toISOString(),
-    });
-  } catch (err: any) {
-    return NextResponse.json({
-      output: err.stdout || err.message || "Erro ao executar comando.",
-      command,
-      timestamp: new Date().toISOString(),
-    });
+
+    if (res.status === 403) {
+      return NextResponse.json({ error: "Comando não permitido." }, { status: 403 });
+    }
+
+    if (!res.ok) {
+      return NextResponse.json({ error: "Relay indisponível." }, { status: 502 });
+    }
+
+    const data = await res.json();
+    return NextResponse.json(data);
+  } catch (e) {
+    return NextResponse.json({ error: "Erro ao conectar ao VPS." }, { status: 503 });
   }
 }
