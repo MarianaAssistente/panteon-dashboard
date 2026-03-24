@@ -108,13 +108,15 @@ export default function Office3D() {
 
   return (
     <>
-      <div style={{ width: "100%", height: "100%", background: "#0A0A0A" }}>
+      <div style={{ width: "100%", height: "calc(100vh - 100px)", minHeight: 500, background: "#0A0A0A" }}>
         <Canvas
           camera={{ position: [9, 14, 18], fov: 45 }}
-          style={{ background: "#0A0A0A" }}
+          style={{ width: "100%", height: "100%", background: "#0A0A0A" }}
         >
-          <ambientLight intensity={0.2} />
-          <directionalLight position={[10, 20, 10]} intensity={0.5} color="#ffffff" />
+          <ambientLight intensity={1.2} />
+          <directionalLight position={[10, 20, 10]} intensity={1.5} color="#ffffff" />
+          <directionalLight position={[-10, 10, -10]} intensity={0.8} color="#ffffff" />
+          <hemisphereLight args={["#ffffff", "#333333", 0.8]} />
 
           <Stars radius={100} depth={50} count={800} factor={2} saturation={0} fade />
 
