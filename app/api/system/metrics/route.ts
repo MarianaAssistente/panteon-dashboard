@@ -1,28 +1,36 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
 
 export const dynamic = "force-dynamic";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 export async function GET() {
   try {
-    const { data, error } = await supabase
-      .from("knowledge")
-      .select("content, updated_at")
-      .eq("code", "SYS-METRICS")
-      .single();
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/knowledge?code=eq.SYS-METRICS&select=content`,
+      {
+        headers: {
+          apikey: SUPABASE_KEY,
+          Authorization: `Bearer ${SUPABASE_KEY}`,
+          "Content-Type": "application/json",
+        },
+        cache: "no-store",
+      }
+    );
 
-    if (error || !data) {
+    if (!res.ok) {
       return NextResponse.json({ error: "VPS metrics unavailable" }, { status: 503 });
     }
 
-    const flat = JSON.parse(data.content as string);
+    const rows = await res.json();
+    if (!rows || rows.length === 0) {
+      return NextResponse.json({ error: "VPS metrics unavailable" }, { status: 503 });
+    }
 
-    // Verificar se métricas têm menos de 60s (agente ativo)
+    const flat = JSON.parse(rows[0].content);
+
+    // Verificar frescor dos dados (máx 90s)
     const updatedAt = new Date(flat.updated_at).getTime();
     const ageSeconds = Math.round((Date.now() - updatedAt) / 1000);
     if (ageSeconds > 90) {
@@ -30,12 +38,9 @@ export async function GET() {
     }
 
     // Transformar formato flat → nested (compatível com o componente)
-    const nested = {
+    return NextResponse.json({
       timestamp: Date.now() / 1000,
-      cpu: {
-        percent: flat.cpu_percent,
-        count: flat.cpu_count,
-      },
+      cpu: { percent: flat.cpu_percent, count: flat.cpu_count },
       memory: {
         total_gb: flat.mem_total_gb,
         used_gb: flat.mem_used_gb,
@@ -58,10 +63,9 @@ export async function GET() {
       uptime_seconds: flat.uptime_seconds,
       online: true,
       age_seconds: ageSeconds,
-    };
-
-    return NextResponse.json(nested);
-  } catch {
+    });
+  } catch (e) {
+    console.error("metrics error:", e);
     return NextResponse.json({ error: "VPS metrics unavailable" }, { status: 503 });
   }
 }
