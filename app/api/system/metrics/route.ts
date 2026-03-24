@@ -20,14 +20,47 @@ export async function GET() {
       return NextResponse.json({ error: "VPS metrics unavailable" }, { status: 503 });
     }
 
-    // Verificar se métricas têm menos de 60s (agente ativo)
-    const metrics = JSON.parse(data.content as string);
-    const updatedAt = new Date(metrics.updated_at).getTime();
-    const ageSeconds = (Date.now() - updatedAt) / 1000;
-    metrics.age_seconds = Math.round(ageSeconds);
-    metrics.online = ageSeconds < 60;
+    const flat = JSON.parse(data.content as string);
 
-    return NextResponse.json(metrics);
+    // Verificar se métricas têm menos de 60s (agente ativo)
+    const updatedAt = new Date(flat.updated_at).getTime();
+    const ageSeconds = Math.round((Date.now() - updatedAt) / 1000);
+    if (ageSeconds > 60) {
+      return NextResponse.json({ error: "VPS metrics unavailable" }, { status: 503 });
+    }
+
+    // Transformar formato flat → nested (compatível com o componente)
+    const nested = {
+      timestamp: Date.now() / 1000,
+      cpu: {
+        percent: flat.cpu_percent,
+        count: flat.cpu_count,
+      },
+      memory: {
+        total_gb: flat.mem_total_gb,
+        used_gb: flat.mem_used_gb,
+        percent: flat.mem_percent,
+      },
+      disk: {
+        total_gb: flat.disk_total_gb,
+        used_gb: flat.disk_used_gb,
+        percent: flat.disk_percent,
+      },
+      network: {
+        bytes_sent_mb: flat.net_sent_mb,
+        bytes_recv_mb: flat.net_recv_mb,
+      },
+      processes: {
+        gateway: flat.proc_gateway,
+        relay: flat.proc_relay,
+        cron: flat.proc_cron,
+      },
+      uptime_seconds: flat.uptime_seconds,
+      online: true,
+      age_seconds: ageSeconds,
+    };
+
+    return NextResponse.json(nested);
   } catch {
     return NextResponse.json({ error: "VPS metrics unavailable" }, { status: 503 });
   }
