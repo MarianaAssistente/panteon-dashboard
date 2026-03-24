@@ -652,6 +652,24 @@ export default function SystemPage() {
                   })}
               </div>
             )}
+          {/* Legenda de status dos crons */}
+          <div className="mt-6 p-4 bg-zinc-900/40 border border-zinc-800 rounded-xl">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-3">Legenda dos Status</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs text-zinc-400">
+              <div className="flex items-start gap-2">
+                <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded-full text-xs shrink-0 whitespace-nowrap">✅ Ativo</span>
+                <span>Cron configurado e rodando normalmente conforme o horário definido.</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="px-2 py-0.5 bg-yellow-500/20 text-yellow-300 border border-yellow-500/30 rounded-full text-xs shrink-0 whitespace-nowrap">⚠️ Watchdog</span>
+                <span>Processo de monitoramento — verifica se outro serviço está no ar e o reinicia automaticamente se cair.</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="px-2 py-0.5 bg-blue-500/20 text-blue-300 border border-blue-500/30 rounded-full text-xs shrink-0 whitespace-nowrap">🔄 @reboot</span>
+                <span>Executa uma única vez ao reiniciar o servidor VPS — usado para iniciar serviços essenciais na inicialização.</span>
+              </div>
+            </div>
+          </div>
           </div>
         )}
 

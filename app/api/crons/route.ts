@@ -58,36 +58,51 @@ export async function GET() {
   return NextResponse.json({ error: "Timeout ao ler crontab" }, { status: 504 });
 }
 
+function extractScriptName(raw: string): string {
+  const match = raw.match(/shared\/([^\s]+\.sh)/);
+  if (match) return match[1];
+  const match2 = raw.match(/python3?\s+[^\s]*\/([^\s]+\.py)/);
+  if (match2) return match2[1];
+  return "";
+}
+
 function parseCrontab(raw: string) {
   const LABELS: Record<string, { name: string; desc: string; category: string }> = {
-    "post-seg":        { name: "Post Instagram — Segunda",  desc: "Publicar post semanal às 08h BRT",            category: "instagram" },
-    "post-qua":        { name: "Post Instagram — Quarta",   desc: "Publicar post semanal às 12h BRT",            category: "instagram" },
-    "post-sex":        { name: "Post Instagram — Sexta",    desc: "Publicar post semanal às 18h BRT",            category: "instagram" },
-    "post-dom":        { name: "Post Instagram — Domingo",  desc: "Publicar post semanal às 10h BRT",            category: "instagram" },
-    "notify-agents":   { name: "Notificar Agentes",         desc: "Verifica tarefas ativas (a cada 15 min)",     category: "sistema" },
-    "gateway-relay":   { name: "Watchdog Relay",            desc: "Reinicia relay se cair (a cada 5 min)",       category: "sistema" },
-    "auto-update":     { name: "Auto-Update Dashboard",     desc: "PATCH updated_at no Supabase (a cada 5 min)", category: "sistema" },
-    "push-metrics":    { name: "Push Métricas VPS",         desc: "Envia CPU/RAM/Disco ao Supabase (1/min)",     category: "sistema" },
-    "terminal-worker": { name: "Watchdog Terminal",         desc: "Reinicia terminal worker se cair (2/min)",    category: "sistema" },
-    "start-desktop":   { name: "Desktop Virtual",           desc: "Inicia VNC/XFCE ao reiniciar VPS",            category: "infra" },
-    "start-tunnel":    { name: "Túnel Cloudflare",          desc: "Inicia túnel ao reiniciar VPS",               category: "infra" },
-    "cloudflared":     { name: "Watchdog Cloudflare",       desc: "Reinicia túnel se cair (a cada 5 min)",       category: "infra" },
-    "sync-notion":     { name: "Sync Notion ↔ Trello",      desc: "Sincroniza tasks (sexta 18h BRT)",            category: "gestao" },
-    "prioridades":     { name: "Prioridades da Semana",     desc: "Envia check de prioridades (segunda 09h)",    category: "gestao" },
-    "destilacao":      { name: "Destilação de Memória",     desc: "Destila memória semanal (domingo 20h)",       category: "gestao" },
-    "scheduled-STR":   { name: "Post Stories",              desc: "Story agendado",                              category: "instagram" },
-    "scheduled-CAP":   { name: "Post @stm.capital",         desc: "Post agendado STM Capital",                   category: "instagram" },
+    "post-seg":        { name: "Post @stm.capital — Segunda",       desc: "Publica post semanal no Instagram @stm.capital às 08h BRT (11h UTC)",        category: "instagram" },
+    "post-qua":        { name: "Post @stm.capital — Quarta",        desc: "Publica post semanal no Instagram @stm.capital às 12h BRT (15h UTC)",        category: "instagram" },
+    "post-sex":        { name: "Post @stm.capital — Sexta",         desc: "Publica post semanal no Instagram @stm.capital às 18h BRT (21h UTC)",        category: "instagram" },
+    "post-dom":        { name: "Post @stm.capital — Domingo",       desc: "Publica post semanal no Instagram @stm.capital às 10h BRT (13h UTC)",        category: "instagram" },
+    "scheduled-STR":   { name: "Stories @stm.capital",              desc: "Publica Story agendado no Instagram @stm.capital",                           category: "instagram" },
+    "scheduled-CAP":   { name: "Post @stm.capital (agendado)",      desc: "Publica post agendado no Instagram @stm.capital via calendário editorial",   category: "instagram" },
+    "scheduled-DIG":   { name: "Post @panteao_digital (agendado)",  desc: "Publica post agendado no Instagram @panteao_digital via calendário",         category: "instagram" },
+    "scheduled-post":  { name: "Post Calendário (agendado)",        desc: "Post de conteúdo agendado manualmente — verifique o script para saber a conta destino", category: "instagram" },
+    "panteon-publish": { name: "Post @panteao_digital",             desc: "Publica post no Instagram @panteao_digital",                                 category: "instagram" },
+    "notify-agents":   { name: "Notificar Agentes",                 desc: "Verifica tarefas ativas no Supabase e notifica agentes via Telegram (a cada 15 min)", category: "sistema" },
+    "gateway-relay":   { name: "Watchdog: Relay HTTP",              desc: "Monitora o servidor relay na porta 3099 — reinicia automaticamente se cair (a cada 5 min)", category: "sistema" },
+    "relay-watch":     { name: "Watchdog: Relay HTTP",              desc: "Monitora o servidor relay na porta 3099 — reinicia automaticamente se cair (a cada 5 min)", category: "sistema" },
+    "auto-update":     { name: "Auto-Update Dashboard",             desc: "Atualiza updated_at das tarefas ativas no Supabase — mantém o indicador verde do dashboard (a cada 5 min)", category: "sistema" },
+    "push-metrics":    { name: "Push Métricas VPS",                 desc: "Coleta CPU, RAM, disco e processos do VPS e envia ao Supabase para o Monitor VPS (a cada minuto)", category: "sistema" },
+    "terminal-worker": { name: "Watchdog: Terminal Worker",         desc: "Monitora o worker do terminal — reinicia automaticamente se parar de responder (a cada 2 min)", category: "sistema" },
+    "start-desktop":   { name: "Desktop Virtual (boot)",            desc: "Inicia o ambiente gráfico XFCE4 + VNC ao reiniciar o VPS — necessário para acesso remoto visual", category: "infra" },
+    "start-tunnel":    { name: "Túnel Cloudflare (boot)",           desc: "Inicia o túnel Cloudflare ao reiniciar o VPS — necessário para o domínio dashboard.stmgroup.com.br", category: "infra" },
+    "cloudflared":     { name: "Watchdog: Túnel Cloudflare",        desc: "Monitora o túnel Cloudflare — reinicia automaticamente se cair (a cada 5 min)", category: "infra" },
+    "sync-notion":     { name: "Sync Notion ↔ Trello",              desc: "Sincroniza tarefas entre Notion e Trello — roda toda sexta-feira às 18h BRT", category: "gestao" },
+    "prioridades":     { name: "Prioridades da Semana",             desc: "Envia mensagem de check de prioridades para o Yuri toda segunda-feira às 09h BRT", category: "gestao" },
+    "destilacao":      { name: "Destilação de Memória",             desc: "Consolida e destila memória semanal dos agentes todo domingo às 20h BRT",    category: "gestao" },
   };
 
   const SCHEDULE_LABELS: Record<string, string> = {
-    "@reboot":      "Ao reiniciar VPS",
-    "* * * * *":    "A cada minuto",
-    "*/2 * * * *":  "A cada 2 minutos",
-    "*/5 * * * *":  "A cada 5 minutos",
-    "*/15 * * * *": "A cada 15 minutos",
-    "0 12 * * 1":   "Segunda-feira, 09h BRT",
-    "0 21 * * 5":   "Sexta-feira, 18h BRT",
-    "0 23 * * 0":   "Domingo, 20h BRT",
+    "@reboot":       "Ao reiniciar o VPS",
+    "* * * * *":     "A cada minuto",
+    "*/2 * * * *":   "A cada 2 minutos",
+    "*/5 * * * *":   "A cada 5 minutos",
+    "*/15 * * * *":  "A cada 15 minutos",
+    "0 11 * * 1":    "Segunda-feira às 08h BRT (11h UTC)",
+    "0 12 * * 1":    "Segunda-feira às 09h BRT (12h UTC)",
+    "0 15 * * 3":    "Quarta-feira às 12h BRT (15h UTC)",
+    "0 21 * * 5":    "Sexta-feira às 18h BRT (21h UTC)",
+    "0 13 * * 0":    "Domingo às 10h BRT (13h UTC)",
+    "0 23 * * 0":    "Domingo às 20h BRT (23h UTC)",
   };
 
   const jobs: any[] = [];
@@ -95,7 +110,7 @@ function parseCrontab(raw: string) {
     const trimmed = line.trim();
     if (!trimmed || trimmed.startsWith("#")) continue;
 
-    let label = { name: "Tarefa Agendada", desc: trimmed.slice(0, 60), category: "outros" };
+    let label: { name: string; desc: string; category: string } | null = null;
     for (const [key, val] of Object.entries(LABELS)) {
       if (trimmed.includes(key)) {
         label = val;
@@ -103,18 +118,32 @@ function parseCrontab(raw: string) {
       }
     }
 
+    if (!label) {
+      const scriptName = extractScriptName(trimmed);
+      label = {
+        name: scriptName ? `Script: ${scriptName}` : "Tarefa Agendada",
+        desc: scriptName
+          ? `Executa o script ${scriptName} conforme o horário definido`
+          : `Comando direto: ${trimmed.slice(0, 80)}`,
+        category: "outros",
+      };
+    }
+
     let schedule = "";
     let scheduleLabel = "";
     if (trimmed.startsWith("@reboot")) {
       schedule = "@reboot";
-      scheduleLabel = "Ao reiniciar VPS";
+      scheduleLabel = "Ao reiniciar o VPS";
     } else {
       const parts = trimmed.split(/\s+/);
       if (parts.length >= 5) {
         schedule = parts.slice(0, 5).join(" ");
-        scheduleLabel = SCHEDULE_LABELS[schedule] || schedule;
+        scheduleLabel = SCHEDULE_LABELS[schedule] || `Agendado: ${schedule}`;
       }
     }
+
+    const isWatchdog = label.name.toLowerCase().includes("watchdog");
+    const isReboot = schedule === "@reboot";
 
     jobs.push({
       id: `cron-${jobs.length}`,
@@ -123,7 +152,7 @@ function parseCrontab(raw: string) {
       category: label.category,
       schedule,
       scheduleLabel,
-      status: schedule === "@reboot" ? "reboot" : label.name.toLowerCase().includes("watchdog") ? "watchdog" : "ok",
+      status: isReboot ? "reboot" : isWatchdog ? "watchdog" : "ok",
       raw: trimmed,
     });
   }
