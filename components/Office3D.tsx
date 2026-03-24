@@ -268,8 +268,8 @@ function Room({ position, size = 10, floorColor = "#C8A97A", label, role, isCEO 
         bodyColor={bodyColor}
         hairColor={hairColor}
         status={status}
-        position={[0, 0.3, -half + 3]}
-        scale={charScale}
+        position={[0, 0.45, -half + 3.5]}
+        scale={charScale * 2.5}
       />
 
       {/* Nome do agente */}
