@@ -35,7 +35,7 @@ export default function ApprovalsPage() {
         supabase
           .from("tasks")
           .select("*, agents(id, name, role, model)")
-          .eq("approval_status", "pending")
+          .or("status.eq.review,approval_status.eq.pending")
           .order("priority", { ascending: true })
           .order("updated_at", { ascending: false }),
         supabase
@@ -100,8 +100,7 @@ export default function ApprovalsPage() {
           <div className="flex flex-col items-center justify-center py-24 gap-4">
             <div className="text-5xl">✓</div>
             <p className="text-[#F5F5F5]/30 text-sm text-center">
-              Todos os itens foram revisados.
-              <br />Nada pendente por aqui.
+              Nenhuma task em review ou aprovação pendente.
             </p>
           </div>
         )
