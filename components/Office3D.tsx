@@ -36,10 +36,62 @@ interface AgentData {
   activeTask?: string;
 }
 
+// ── Decorative components ──────────────────────────────────────────────────
+
+function Plant({ position }: { position: [number, number, number] }) {
+  return (
+    <group position={position}>
+      {/* Vaso */}
+      <mesh position={[0, 0.2, 0]}>
+        <boxGeometry args={[0.3, 0.4, 0.3]} />
+        <meshStandardMaterial color="#8B4513" roughness={0.9} />
+      </mesh>
+      {/* Terra */}
+      <mesh position={[0, 0.42, 0]}>
+        <boxGeometry args={[0.28, 0.06, 0.28]} />
+        <meshStandardMaterial color="#3a2a10" />
+      </mesh>
+      {/* Planta — boxes verdes empilhados */}
+      <mesh position={[0, 0.7, 0]}>
+        <boxGeometry args={[0.4, 0.35, 0.4]} />
+        <meshStandardMaterial color="#2d6a2d" roughness={0.8} />
+      </mesh>
+      <mesh position={[0, 1.0, 0]}>
+        <boxGeometry args={[0.3, 0.3, 0.3]} />
+        <meshStandardMaterial color="#3a8a3a" roughness={0.8} />
+      </mesh>
+      <mesh position={[0, 1.25, 0]}>
+        <boxGeometry args={[0.2, 0.2, 0.2]} />
+        <meshStandardMaterial color="#4aaa4a" roughness={0.8} />
+      </mesh>
+    </group>
+  );
+}
+
+function WallPicture({ position, color }: { position: [number, number, number]; color: string }) {
+  return (
+    <group position={position}>
+      {/* Moldura */}
+      <mesh>
+        <boxGeometry args={[0.8, 0.6, 0.05]} />
+        <meshStandardMaterial color="#5a3a10" roughness={0.8} />
+      </mesh>
+      {/* Imagem */}
+      <mesh position={[0, 0, 0.03]}>
+        <boxGeometry args={[0.65, 0.45, 0.02]} />
+        <meshStandardMaterial color={color} roughness={0.5} />
+      </mesh>
+    </group>
+  );
+}
+
+// ── VoxelCharacter ─────────────────────────────────────────────────────────
+
 function VoxelCharacter({
   skinColor,
   bodyColor,
   hairColor = "#3a2a1a",
+  isFemale = false,
   status,
   position,
   scale = 1.0,
@@ -47,6 +99,7 @@ function VoxelCharacter({
   skinColor: string;
   bodyColor: string;
   hairColor?: string;
+  isFemale?: boolean;
   status: string;
   position: [number, number, number];
   scale?: number;
@@ -62,11 +115,10 @@ function VoxelCharacter({
     if (!groupRef.current) return;
 
     if (status === "working") {
-      const intensity = scale > 1 ? 0.5 : 0.4; // Mariana digita mais intensamente
       if (leftArmRef.current) leftArmRef.current.rotation.x = Math.sin(t * 4 * (scale > 1 ? 1.4 : 1)) * (0.3 * (scale > 1 ? 1.3 : 1));
       if (rightArmRef.current) rightArmRef.current.rotation.x = Math.sin(t * 4 * (scale > 1 ? 1.4 : 1) + Math.PI) * (0.3 * (scale > 1 ? 1.3 : 1));
       if (headRef.current) headRef.current.rotation.x = 0.2;
-      if (lightRef.current) lightRef.current.intensity = intensity + Math.sin(t * 3) * 0.3;
+      if (lightRef.current) lightRef.current.intensity = (scale > 1 ? 0.5 : 0.4) + Math.sin(t * 3) * 0.3;
       groupRef.current.position.set(position[0], position[1], position[2]);
     } else if (status === "idle") {
       groupRef.current.position.set(position[0], position[1] + Math.sin(t * 1.5) * 0.05, position[2]);
@@ -93,11 +145,38 @@ function VoxelCharacter({
         <boxGeometry args={[0.5, 0.5, 0.5]} />
         <meshStandardMaterial color={skinColor} roughness={0.6} />
       </mesh>
-      {/* Cabelo/topo */}
-      <mesh position={[0, 1.78, 0]}>
-        <boxGeometry args={[0.52, 0.12, 0.52]} />
-        <meshStandardMaterial color={hairColor} />
-      </mesh>
+
+      {/* Cabelo — feminino longo ou masculino curto */}
+      {isFemale ? (
+        <>
+          {/* Topo */}
+          <mesh position={[0, 1.78, 0]}>
+            <boxGeometry args={[0.54, 0.14, 0.54]} />
+            <meshStandardMaterial color={hairColor} />
+          </mesh>
+          {/* Lateral esquerda descendo */}
+          <mesh position={[-0.27, 1.45, 0]}>
+            <boxGeometry args={[0.08, 0.5, 0.48]} />
+            <meshStandardMaterial color={hairColor} />
+          </mesh>
+          {/* Lateral direita descendo */}
+          <mesh position={[0.27, 1.45, 0]}>
+            <boxGeometry args={[0.08, 0.5, 0.48]} />
+            <meshStandardMaterial color={hairColor} />
+          </mesh>
+          {/* Trás descendo */}
+          <mesh position={[0, 1.35, -0.27]}>
+            <boxGeometry args={[0.52, 0.6, 0.1]} />
+            <meshStandardMaterial color={hairColor} />
+          </mesh>
+        </>
+      ) : (
+        <mesh position={[0, 1.78, 0]}>
+          <boxGeometry args={[0.52, 0.12, 0.52]} />
+          <meshStandardMaterial color={hairColor} />
+        </mesh>
+      )}
+
       {/* Olho esquerdo */}
       <mesh position={[-0.12, 1.52, 0.26]}>
         <boxGeometry args={[0.1, 0.08, 0.02]} />
@@ -137,6 +216,8 @@ function VoxelCharacter({
   );
 }
 
+// ── Room ───────────────────────────────────────────────────────────────────
+
 interface RoomProps {
   position: [number, number, number];
   size?: number;
@@ -149,14 +230,33 @@ interface RoomProps {
   agentColor: string;
   bodyColor: string;
   hairColor?: string;
+  isFemale?: boolean;
   charScale?: number;
+  bookshelf?: boolean;
 }
 
-function Room({ position, size = 10, floorColor = "#C8A97A", label, role, isCEO = false, onClick, status, agentColor, bodyColor, hairColor, charScale = 1.0 }: RoomProps) {
+function Room({
+  position,
+  size = 10,
+  floorColor = "#C8A97A",
+  label,
+  role,
+  isCEO = false,
+  onClick,
+  status,
+  agentColor,
+  bodyColor,
+  hairColor,
+  isFemale = false,
+  charScale = 1.0,
+  bookshelf = false,
+}: RoomProps) {
   const statusColor = STATUS_COLORS[status] || "#9ca3af";
-  const wallColor = "#7A7A7A";
-  const wallColorSide = "#6A6A6A";
   const half = size / 2;
+
+  // Wall heights — reduced to 2.8 so characters are visible isometrically
+  const wallH = 2.8;
+  const wallY = 1.4;
 
   return (
     <group position={position} onClick={(e) => { e.stopPropagation(); onClick(); }}>
@@ -171,37 +271,56 @@ function Room({ position, size = 10, floorColor = "#C8A97A", label, role, isCEO 
         <meshStandardMaterial color={floorColor} roughness={0.8} />
       </mesh>
 
-      {/* Parede fundo (Z negativo) */}
-      <mesh position={[0, 2.15, -half]}>
-        <boxGeometry args={[size, 4, 0.4]} />
-        <meshStandardMaterial color={wallColor} roughness={0.9} />
+      {/* ── Paredes de pedra ── */}
+
+      {/* Parede fundo (Z negativo) — #707070 */}
+      <mesh position={[0, wallY, -half]}>
+        <boxGeometry args={[size, wallH, 0.4]} />
+        <meshStandardMaterial color="#707070" roughness={0.95} metalness={0.0} />
       </mesh>
-      {/* Parede frente (Z positivo) — com gap de porta central */}
-      <mesh position={[-half * 0.4, 2.15, half]}>
-        <boxGeometry args={[size * 0.3, 4, 0.4]} />
-        <meshStandardMaterial color={wallColorSide} roughness={0.9} />
+      {/* Blocos de pedra — linhas horizontais na parede fundo */}
+      {[0.7, 1.4, 2.1].map((y, i) => (
+        <mesh key={`hb-${i}`} position={[0, y, -half + 0.21]}>
+          <boxGeometry args={[size - 0.1, 0.04, 0.02]} />
+          <meshStandardMaterial color="#555555" />
+        </mesh>
+      ))}
+      {/* Linhas verticais na parede fundo */}
+      {[-2, 0, 2].map((x, i) => (
+        <mesh key={`vb-${i}`} position={[x, 1.0, -half + 0.21]}>
+          <boxGeometry args={[0.04, 1.3, 0.02]} />
+          <meshStandardMaterial color="#555555" />
+        </mesh>
+      ))}
+
+      {/* Parede frente (Z positivo) com gap de porta — #6A6A6A */}
+      <mesh position={[-half * 0.4, wallY, half]}>
+        <boxGeometry args={[size * 0.3, wallH, 0.4]} />
+        <meshStandardMaterial color="#6A6A6A" roughness={0.95} metalness={0.0} />
       </mesh>
-      <mesh position={[half * 0.4, 2.15, half]}>
-        <boxGeometry args={[size * 0.3, 4, 0.4]} />
-        <meshStandardMaterial color={wallColorSide} roughness={0.9} />
+      <mesh position={[half * 0.4, wallY, half]}>
+        <boxGeometry args={[size * 0.3, wallH, 0.4]} />
+        <meshStandardMaterial color="#6A6A6A" roughness={0.95} metalness={0.0} />
       </mesh>
-      {/* Parede esquerda (X negativo) — com gap de porta */}
-      <mesh position={[-half, 2.15, -half * 0.4]}>
-        <boxGeometry args={[0.4, 4, size * 0.3]} />
-        <meshStandardMaterial color={wallColorSide} roughness={0.9} />
+
+      {/* Parede esquerda (X negativo) com gap de porta — #686868 */}
+      <mesh position={[-half, wallY, -half * 0.4]}>
+        <boxGeometry args={[0.4, wallH, size * 0.3]} />
+        <meshStandardMaterial color="#686868" roughness={0.95} metalness={0.0} />
       </mesh>
-      <mesh position={[-half, 2.15, half * 0.4]}>
-        <boxGeometry args={[0.4, 4, size * 0.3]} />
-        <meshStandardMaterial color={wallColorSide} roughness={0.9} />
+      <mesh position={[-half, wallY, half * 0.4]}>
+        <boxGeometry args={[0.4, wallH, size * 0.3]} />
+        <meshStandardMaterial color="#686868" roughness={0.95} metalness={0.0} />
       </mesh>
-      {/* Parede direita (X positivo) — com gap de porta */}
-      <mesh position={[half, 2.15, -half * 0.4]}>
-        <boxGeometry args={[0.4, 4, size * 0.3]} />
-        <meshStandardMaterial color={wallColorSide} roughness={0.9} />
+
+      {/* Parede direita (X positivo) com gap de porta — #646464 */}
+      <mesh position={[half, wallY, -half * 0.4]}>
+        <boxGeometry args={[0.4, wallH, size * 0.3]} />
+        <meshStandardMaterial color="#646464" roughness={0.95} metalness={0.0} />
       </mesh>
-      <mesh position={[half, 2.15, half * 0.4]}>
-        <boxGeometry args={[0.4, 4, size * 0.3]} />
-        <meshStandardMaterial color={wallColorSide} roughness={0.9} />
+      <mesh position={[half, wallY, half * 0.4]}>
+        <boxGeometry args={[0.4, wallH, size * 0.3]} />
+        <meshStandardMaterial color="#646464" roughness={0.95} metalness={0.0} />
       </mesh>
 
       {/* Mesa */}
@@ -238,10 +357,38 @@ function Room({ position, size = 10, floorColor = "#C8A97A", label, role, isCEO 
       </mesh>
 
       {/* Indicador de status */}
-      <mesh position={[half - 0.5, 4.3, -half + 0.5]}>
+      <mesh position={[half - 0.5, wallH, -half + 0.5]}>
         <sphereGeometry args={[0.18, 16, 16]} />
         <meshStandardMaterial color={statusColor} emissive={statusColor} emissiveIntensity={2} />
       </mesh>
+
+      {/* ── Ornamentações ── */}
+      {/* Planta — canto direito */}
+      <Plant position={[half - 1, 0.15, half - 1]} />
+      {/* Sala CEO: segunda planta no canto esquerdo */}
+      {isCEO && <Plant position={[-half + 1, 0.15, half - 1]} />}
+
+      {/* Quadro na parede fundo */}
+      <WallPicture
+        position={[1.5, 1.8, -half + 0.3]}
+        color={isCEO ? "#D4AF37" : agentColor}
+      />
+
+      {/* Prateleira com livros (salas laterais) */}
+      {bookshelf && (
+        <>
+          <mesh position={[-half + 0.8, 1.5, 1]}>
+            <boxGeometry args={[0.15, 1.2, 1.2]} />
+            <meshStandardMaterial color="#8B6914" roughness={0.8} />
+          </mesh>
+          {["#cc2222", "#2255cc", "#22aa44", "#ccaa22", "#8822cc"].map((c, i) => (
+            <mesh key={i} position={[-half + 0.73, 0.95 + i * 0.22, 0.7 + (i % 2) * 0.3]}>
+              <boxGeometry args={[0.12, 0.2, 0.12]} />
+              <meshStandardMaterial color={c} roughness={0.7} />
+            </mesh>
+          ))}
+        </>
+      )}
 
       {/* Plaquinha do cargo */}
       <Html position={[0, 0.9, -half + 3.8]} center>
@@ -267,13 +414,14 @@ function Room({ position, size = 10, floorColor = "#C8A97A", label, role, isCEO 
         skinColor="#F5CBA7"
         bodyColor={bodyColor}
         hairColor={hairColor}
+        isFemale={isFemale}
         status={status}
         position={[0, 0.45, -half + 3.5]}
         scale={charScale * 2.5}
       />
 
       {/* Nome do agente */}
-      <Html position={[0, 4.8, 0]} center>
+      <Html position={[0, wallH + 2.5, 0]} center>
         <div
           style={{
             color: "#fff",
@@ -291,6 +439,8 @@ function Room({ position, size = 10, floorColor = "#C8A97A", label, role, isCEO 
   );
 }
 
+// ── Corridor ───────────────────────────────────────────────────────────────
+
 function Corridor({ position, rotation = [0, 0, 0], length = 10 }: {
   position: [number, number, number];
   rotation?: [number, number, number];
@@ -298,12 +448,10 @@ function Corridor({ position, rotation = [0, 0, 0], length = 10 }: {
 }) {
   return (
     <group position={position} rotation={rotation as [number, number, number]}>
-      {/* Piso do corredor */}
       <mesh position={[0, 0, 0]} receiveShadow>
         <boxGeometry args={[3, 0.25, length]} />
         <meshStandardMaterial color="#B8956A" roughness={0.85} />
       </mesh>
-      {/* Bordas laterais */}
       <mesh position={[-1.7, 0, 0]}>
         <boxGeometry args={[0.2, 0.3, length]} />
         <meshStandardMaterial color="#8A6A46" roughness={0.9} />
@@ -315,6 +463,8 @@ function Corridor({ position, rotation = [0, 0, 0], length = 10 }: {
     </group>
   );
 }
+
+// ── OfficeScene ────────────────────────────────────────────────────────────
 
 function OfficeScene({ agents, onSelect }: { agents: AgentData[]; onSelect: (a: AgentData) => void }) {
   const getAgent = (id: string) => agents.find((a) => a.id === id) || agents[0];
@@ -347,6 +497,7 @@ function OfficeScene({ agents, onSelect }: { agents: AgentData[]; onSelect: (a: 
             agentColor={a.color}
             bodyColor="#1a1a4a"
             hairColor="#5a2a10"
+            isFemale
             charScale={1.2}
           />
         );
@@ -364,6 +515,9 @@ function OfficeScene({ agents, onSelect }: { agents: AgentData[]; onSelect: (a: 
             status={a.status}
             agentColor={a.color}
             bodyColor="#4a2a6a"
+            hairColor="#1a1a1a"
+            isFemale
+            bookshelf
           />
         );
       })()}
@@ -380,6 +534,8 @@ function OfficeScene({ agents, onSelect }: { agents: AgentData[]; onSelect: (a: 
             status={a.status}
             agentColor={a.color}
             bodyColor="#6a2a0a"
+            hairColor="#2a1a0a"
+            bookshelf
           />
         );
       })()}
@@ -396,6 +552,8 @@ function OfficeScene({ agents, onSelect }: { agents: AgentData[]; onSelect: (a: 
             status={a.status}
             agentColor={a.color}
             bodyColor="#6a1a3a"
+            hairColor="#D4AF37"
+            isFemale
           />
         );
       })()}
@@ -412,6 +570,7 @@ function OfficeScene({ agents, onSelect }: { agents: AgentData[]; onSelect: (a: 
             status={a.status}
             agentColor={a.color}
             bodyColor="#1a4a2a"
+            hairColor="#C8A96A"
           />
         );
       })()}
@@ -428,6 +587,8 @@ function OfficeScene({ agents, onSelect }: { agents: AgentData[]; onSelect: (a: 
             status={a.status}
             agentColor={a.color}
             bodyColor="#0a3a4a"
+            hairColor="#4a1a1a"
+            isFemale
           />
         );
       })()}
@@ -444,6 +605,7 @@ function OfficeScene({ agents, onSelect }: { agents: AgentData[]; onSelect: (a: 
             status={a.status}
             agentColor={a.color}
             bodyColor="#4a1a1a"
+            hairColor="#1a1a1a"
           />
         );
       })()}
@@ -460,41 +622,30 @@ function OfficeScene({ agents, onSelect }: { agents: AgentData[]; onSelect: (a: 
             status={a.status}
             agentColor={a.color}
             bodyColor="#3a1a6a"
+            hairColor="#8B4513"
+            isFemale
+            bookshelf
           />
         );
       })()}
 
       {/* ── CORREDORES ── */}
-      {/* Atena → CEO (diagonal NW, corredor em X e Z separados) */}
-      {/* Corredor CEO ↔ Atena (horizontal X, z=-6) */}
       <Corridor position={[-6, 0, -12]} rotation={[0, Math.PI / 2, 0]} length={10} />
-      {/* Corredor CEO ↔ Atena (vertical Z, x=-12) — não necessário, usar direto */}
-      {/* Atena até CEO: eixo Z */}
       <Corridor position={[-12, 0, -6]} length={10} />
-
-      {/* Hefesto → CEO */}
       <Corridor position={[6, 0, -12]} rotation={[0, Math.PI / 2, 0]} length={10} />
       <Corridor position={[12, 0, -6]} length={10} />
-
-      {/* Afrodite → CEO (só eixo X, z=0) */}
       <Corridor position={[-6, 0, 0]} rotation={[0, Math.PI / 2, 0]} length={10} />
-
-      {/* Apollo → CEO */}
       <Corridor position={[6, 0, 0]} rotation={[0, Math.PI / 2, 0]} length={10} />
-
-      {/* Hera → CEO */}
       <Corridor position={[-12, 0, 6]} length={10} />
       <Corridor position={[-6, 0, 12]} rotation={[0, Math.PI / 2, 0]} length={10} />
-
-      {/* Ares → CEO */}
       <Corridor position={[0, 0, 6]} length={10} />
-
-      {/* Héstia → CEO */}
       <Corridor position={[12, 0, 6]} length={10} />
       <Corridor position={[6, 0, 12]} rotation={[0, Math.PI / 2, 0]} length={10} />
     </>
   );
 }
+
+// ── Main export ────────────────────────────────────────────────────────────
 
 export default function Office3D() {
   const [agents, setAgents] = useState<AgentData[]>(
