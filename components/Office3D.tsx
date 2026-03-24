@@ -85,6 +85,32 @@ function WallPicture({ position, color }: { position: [number, number, number]; 
   );
 }
 
+// ── Room positions for delegation animation ────────────────────────────────
+
+const ROOM_POSITIONS: Record<string, [number, number, number]> = {
+  mariana:  [0, 0, 0],
+  atena:    [-12, 0, -12],
+  hefesto:  [12, 0, -12],
+  afrodite: [-12, 0, 0],
+  apollo:   [12, 0, 0],
+  hera:     [-12, 0, 12],
+  ares:     [0, 0, 12],
+  hestia:   [12, 0, 12],
+};
+
+function getWaypoints(targetId: string): [number, number, number][] {
+  const target = ROOM_POSITIONS[targetId];
+  if (!target) return [];
+  const mid: [number, number, number] = [target[0] / 2, 0, target[2] / 2];
+  return [
+    [0, 0.45, 3],
+    mid,
+    [target[0], 0.45, target[2] + (target[2] >= 0 ? -3 : 3)],
+    mid,
+    [0, 0.45, 3],
+  ];
+}
+
 // ── VoxelCharacter ─────────────────────────────────────────────────────────
 
 function VoxelCharacter({
@@ -95,6 +121,7 @@ function VoxelCharacter({
   status,
   position,
   scale = 1.0,
+  isWalking = false,
 }: {
   skinColor: string;
   bodyColor: string;
@@ -103,6 +130,7 @@ function VoxelCharacter({
   status: string;
   position: [number, number, number];
   scale?: number;
+  isWalking?: boolean;
 }) {
   const groupRef = useRef<THREE.Group>(null);
   const headRef = useRef<THREE.Mesh>(null);
@@ -113,6 +141,13 @@ function VoxelCharacter({
   useFrame(({ clock }) => {
     const t = clock.getElapsedTime();
     if (!groupRef.current) return;
+
+    if (isWalking) {
+      groupRef.current.rotation.z = Math.sin(t * 8) * 0.02;
+      if (leftArmRef.current) leftArmRef.current.rotation.x = Math.sin(t * 8) * 0.4;
+      if (rightArmRef.current) rightArmRef.current.rotation.x = Math.sin(t * 8 + Math.PI) * 0.4;
+      return;
+    }
 
     if (status === "working") {
       if (leftArmRef.current) leftArmRef.current.rotation.x = Math.sin(t * 4 * (scale > 1 ? 1.4 : 1)) * (0.3 * (scale > 1 ? 1.3 : 1));
@@ -464,9 +499,86 @@ function Corridor({ position, rotation = [0, 0, 0], length = 10 }: {
   );
 }
 
+// ── DelegationWalker ───────────────────────────────────────────────────────
+
+function DelegationWalker({ waypoints, onComplete }: {
+  waypoints: [number, number, number][];
+  onComplete: () => void;
+}) {
+  const groupRef = useRef<THREE.Group>(null);
+  const progressRef = useRef(0);
+  const segmentRef = useRef(0);
+  const doneRef = useRef(false);
+  const SPEED = 4;
+
+  useFrame((_, delta) => {
+    if (doneRef.current) return;
+    if (!groupRef.current || segmentRef.current >= waypoints.length - 1) {
+      if (!doneRef.current) {
+        doneRef.current = true;
+        onComplete();
+      }
+      return;
+    }
+
+    const from = waypoints[segmentRef.current];
+    const to = waypoints[segmentRef.current + 1];
+    const dist = Math.sqrt((to[0] - from[0]) ** 2 + (to[2] - from[2]) ** 2) || 0.001;
+
+    progressRef.current += (SPEED * delta) / dist;
+
+    if (progressRef.current >= 1) {
+      progressRef.current = 0;
+      segmentRef.current += 1;
+      if (segmentRef.current >= waypoints.length - 1) {
+        if (!doneRef.current) {
+          doneRef.current = true;
+          onComplete();
+        }
+        return;
+      }
+    }
+
+    const p = progressRef.current;
+    groupRef.current.position.set(
+      from[0] + (to[0] - from[0]) * p,
+      from[1],
+      from[2] + (to[2] - from[2]) * p
+    );
+
+    const angle = Math.atan2(to[0] - from[0], to[2] - from[2]);
+    groupRef.current.rotation.y = angle;
+  });
+
+  return (
+    <group ref={groupRef} position={waypoints[0]}>
+      <VoxelCharacter
+        skinColor="#F5CBA7"
+        bodyColor="#1a1a4a"
+        hairColor="#5a2a10"
+        isFemale
+        status="working"
+        position={[0, 0, 0]}
+        scale={3.0}
+        isWalking
+      />
+      {/* Envelope/documento que ela carrega */}
+      <mesh position={[0.8, 2.5, 0.3]}>
+        <boxGeometry args={[0.4, 0.3, 0.05]} />
+        <meshStandardMaterial color="#D4AF37" emissive="#D4AF37" emissiveIntensity={0.5} />
+      </mesh>
+    </group>
+  );
+}
+
 // ── OfficeScene ────────────────────────────────────────────────────────────
 
-function OfficeScene({ agents, onSelect }: { agents: AgentData[]; onSelect: (a: AgentData) => void }) {
+function OfficeScene({ agents, onSelect, delegation, onDelegationComplete }: {
+  agents: AgentData[];
+  onSelect: (a: AgentData) => void;
+  delegation: { active: boolean; waypoints: [number,number,number][]; targetName: string; } | null;
+  onDelegationComplete: () => void;
+}) {
   const getAgent = (id: string) => agents.find((a) => a.id === id) || agents[0];
 
   return (
@@ -641,6 +753,14 @@ function OfficeScene({ agents, onSelect }: { agents: AgentData[]; onSelect: (a: 
       <Corridor position={[0, 0, 6]} length={10} />
       <Corridor position={[12, 0, 6]} length={10} />
       <Corridor position={[6, 0, 12]} rotation={[0, Math.PI / 2, 0]} length={10} />
+
+      {/* Delegação ativa */}
+      {delegation?.active && (
+        <DelegationWalker
+          waypoints={delegation.waypoints}
+          onComplete={onDelegationComplete}
+        />
+      )}
     </>
   );
 }
@@ -652,6 +772,40 @@ export default function Office3D() {
     AGENTS_STATIC.map((a) => ({ ...a, status: "standby" }))
   );
   const [selected, setSelected] = useState<AgentData | null>(null);
+  const [delegation, setDelegation] = useState<{
+    active: boolean;
+    waypoints: [number, number, number][];
+    targetName: string;
+  } | null>(null);
+  const lastDispatchRef = useRef<string>("");
+
+  const triggerDelegation = (agentId: string) => {
+    const waypoints = getWaypoints(agentId);
+    if (waypoints.length === 0) return;
+    setDelegation({ active: true, waypoints, targetName: agentId });
+  };
+
+  // Poll for dispatch commands
+  useEffect(() => {
+    const headers = { apikey: ANON_KEY, Authorization: `Bearer ${ANON_KEY}` };
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(
+          `${SUPABASE_URL}/rest/v1/knowledge?code=like.DISPATCH-CMD-*&order=created_at.desc&limit=1`,
+          { headers }
+        );
+        const data = await res.json();
+        if (data[0] && data[0].created_at !== lastDispatchRef.current) {
+          lastDispatchRef.current = data[0].created_at;
+          try {
+            const content = JSON.parse(data[0].content || "{}");
+            if (content.agent_id) triggerDelegation(content.agent_id);
+          } catch {}
+        }
+      } catch {}
+    }, 10000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     const headers = { apikey: ANON_KEY, Authorization: `Bearer ${ANON_KEY}` };
@@ -691,7 +845,12 @@ export default function Office3D() {
       >
         <color attach="background" args={["#0A0A0A"]} />
         <Suspense fallback={null}>
-          <OfficeScene agents={agents} onSelect={setSelected} />
+          <OfficeScene
+            agents={agents}
+            onSelect={setSelected}
+            delegation={delegation}
+            onDelegationComplete={() => setDelegation(null)}
+          />
         </Suspense>
         <OrbitControls
           enableRotate={false}
@@ -702,6 +861,62 @@ export default function Office3D() {
           target={[0, 0, 0]}
         />
       </Canvas>
+
+      {/* Banner de delegação */}
+      {delegation?.active && (
+        <div
+          style={{
+            position: "absolute",
+            top: 16,
+            left: "50%",
+            transform: "translateX(-50%)",
+            background: "rgba(212,175,55,0.15)",
+            border: "1px solid #D4AF37",
+            borderRadius: 8,
+            padding: "8px 20px",
+            color: "#D4AF37",
+            fontSize: 13,
+            fontWeight: 600,
+            zIndex: 5,
+            backdropFilter: "blur(4px)",
+            pointerEvents: "none",
+          }}
+        >
+          📨 Mariana delegando para {delegation.targetName}...
+        </div>
+      )}
+
+      {/* Botões de teste manual */}
+      <div
+        style={{
+          position: "absolute",
+          bottom: 16,
+          left: 16,
+          zIndex: 5,
+          display: "flex",
+          gap: 8,
+          flexWrap: "wrap",
+        }}
+      >
+        {["atena", "hefesto", "apollo", "afrodite", "hera", "ares", "hestia"].map((id) => (
+          <button
+            key={id}
+            onClick={() => triggerDelegation(id)}
+            style={{
+              background: "rgba(212,175,55,0.1)",
+              border: "1px solid #D4AF37",
+              color: "#D4AF37",
+              borderRadius: 6,
+              padding: "4px 10px",
+              fontSize: 11,
+              cursor: "pointer",
+              fontWeight: 600,
+            }}
+          >
+            → {id}
+          </button>
+        ))}
+      </div>
 
       {/* Painel lateral */}
       {selected && (
