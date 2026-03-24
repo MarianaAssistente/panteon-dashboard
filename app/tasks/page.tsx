@@ -136,7 +136,8 @@ function TaskCard({
   onReviewAction?: (task: Task, action: "approve" | "adjust" | "reject") => void;
 }) {
   const col = colOf(colKey)!;
-  const has_next = !!nextCol(colKey);
+  // in_progress → review é exclusivo do agente, não aparece para Yuri
+  const has_next = !!nextCol(colKey) && !(colKey === "in_progress" && nextCol(colKey)?.key === "review");
   const has_prev = !!prevCol(colKey);
   const projColor = PROJECT_COLORS[task.project_code || ""] || "#71717A";
 
@@ -369,12 +370,9 @@ function TaskDrawer({
             </button>
           )}
           {task.status === "in_progress" && (
-            <button
-              onClick={() => onMoveToReview(task)}
-              className="flex-1 py-2 rounded-lg bg-yellow-600 hover:bg-yellow-500 text-white font-semibold text-sm transition-colors"
-            >
-              🔍 Mover para Review
-            </button>
+            <div className="flex-1 py-2 rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-500 text-xs text-center">
+              ⏳ Aguardando agente concluir
+            </div>
           )}
         </div>
       </div>
@@ -463,11 +461,9 @@ export default function TasksPage() {
       return;
     }
 
-    // in_progress → review: bloquear via botão — só agente pode mover
-    // (Yuri pode usar o drawer se precisar forçar)
+    // in_progress → review: BLOQUEADO para Yuri — só o agente move ao concluir
     if (task.status === "in_progress" && target.key === "review") {
-      setReviewConfirmTask(task);
-      return;
+      return; // silenciosamente ignorado
     }
 
     patchStatus(task, target.key);
