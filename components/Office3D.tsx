@@ -393,10 +393,45 @@ function Room({
         <meshStandardMaterial color={agentColor} emissive={agentColor} emissiveIntensity={0.3} />
       </mesh>
 
-      {/* Indicador de status */}
+      {/* ── Indicadores de status visíveis ── */}
+
+      {/* Aura no piso — anel colorido ao redor da sala */}
+      <mesh position={[0, -0.12, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[size / 2 - 0.3, size / 2 + 0.1, 32]} />
+        <meshStandardMaterial color={statusColor} emissive={statusColor} emissiveIntensity={status === "working" ? 1.5 : 0.4} transparent opacity={status === "standby" ? 0.15 : 0.6} side={2} />
+      </mesh>
+
+      {/* Luz colorida sobre a sala */}
+      <pointLight
+        position={[0, wallH + 1, 0]}
+        color={statusColor}
+        intensity={status === "working" ? 2.5 : status === "idle" ? 1.2 : 0.2}
+        distance={size + 2}
+      />
+
+      {/* Badge de status flutuante acima do personagem */}
+      <Html position={[0, wallH + 1.2, 0]} center>
+        <div style={{
+          background: statusColor,
+          color: "#000",
+          fontSize: 10,
+          fontWeight: 800,
+          padding: "2px 8px",
+          borderRadius: 10,
+          whiteSpace: "nowrap",
+          pointerEvents: "none",
+          boxShadow: `0 0 8px ${statusColor}`,
+          textTransform: "uppercase",
+          letterSpacing: "0.05em",
+        }}>
+          {status === "working" ? "⚡ Ativo" : status === "idle" ? "⏸ Ocioso" : "💤 Standby"}
+        </div>
+      </Html>
+
+      {/* Esfera de status (canto) — mantida mas maior */}
       <mesh position={[half - 0.5, wallH, -half + 0.5]}>
-        <sphereGeometry args={[0.18, 16, 16]} />
-        <meshStandardMaterial color={statusColor} emissive={statusColor} emissiveIntensity={2} />
+        <sphereGeometry args={[0.28, 16, 16]} />
+        <meshStandardMaterial color={statusColor} emissive={statusColor} emissiveIntensity={3} />
       </mesh>
 
       {/* ── Ornamentações ── */}
