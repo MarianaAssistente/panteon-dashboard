@@ -46,7 +46,29 @@ const STATUS_LABEL: Record<string, string> = { backlog: "Backlog", in_progress: 
 const STATUS_COLOR: Record<string, string> = { backlog: "text-zinc-400", in_progress: "text-blue-400", review: "text-amber-400", blocked: "text-red-400", done: "text-emerald-400" };
 
 function TaskDrawer({ task, onClose }: { task: Task; onClose: () => void }) {
-  const vColor = VERTICAL_COLOR[task.vertical || ""] || "#D4AF37";
+  const [full, setFull] = useState<Task | null>(null);
+  const [loadingFull, setLoadingFull] = useState(true);
+
+  useEffect(() => {
+    async function fetchFull() {
+      setLoadingFull(true);
+      try {
+        const SVC = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        const URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const res = await fetch(
+          `${URL}/rest/v1/tasks?code=eq.${task.code}&select=*`,
+          { headers: { apikey: SVC!, Authorization: `Bearer ${SVC}` } }
+        );
+        const rows = await res.json();
+        if (Array.isArray(rows) && rows.length > 0) setFull(rows[0]);
+      } catch { /* usa dados básicos */ }
+      setLoadingFull(false);
+    }
+    fetchFull();
+  }, [task.code]);
+
+  const t = full || task;
+  const vColor = VERTICAL_COLOR[t.vertical || ""] || "#D4AF37";
   return (
     <>
       <div className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm" onClick={onClose} />
@@ -54,59 +76,80 @@ function TaskDrawer({ task, onClose }: { task: Task; onClose: () => void }) {
         {/* Header */}
         <div className="p-5 border-b border-zinc-800 flex items-start justify-between gap-3">
           <div>
-            <span className="font-mono text-xs text-zinc-500">{task.code}</span>
-            <h2 className="text-white text-lg font-bold mt-0.5 leading-snug">{task.title}</h2>
+            <span className="font-mono text-xs text-zinc-500">{t.code}</span>
+            <h2 className="text-white text-lg font-bold mt-0.5 leading-snug">{t.title}</h2>
           </div>
           <button onClick={onClose} className="text-zinc-500 hover:text-white p-1 shrink-0"><X size={18} /></button>
         </div>
 
-        {/* Meta */}
-        <div className="p-5 border-b border-zinc-800 flex flex-wrap gap-2">
-          {task.agent_id && (
-            <span className="flex items-center gap-1.5 px-2.5 py-1 bg-zinc-800 rounded-lg text-sm text-zinc-300">
-              <span>{AGENT_EMOJI[task.agent_id] || "🤖"}</span> {task.agent_id}
-            </span>
-          )}
-          {task.project_code && (
-            <span className="px-2.5 py-1 rounded-lg text-xs font-mono font-semibold"
-              style={{ backgroundColor: vColor + "22", color: vColor }}>{task.project_code}</span>
-          )}
-          {task.vertical && <span className="px-2.5 py-1 bg-zinc-800 rounded-lg text-xs text-zinc-400">{task.vertical}</span>}
-          <span className={`px-2.5 py-1 bg-zinc-800 rounded-lg text-xs font-medium ${STATUS_COLOR[task.status] || "text-zinc-400"}`}>
-            {STATUS_LABEL[task.status] || task.status}
-          </span>
-          {task.priority && (
-            <span className={`px-2.5 py-1 bg-zinc-800 rounded-lg text-xs ${PRIORITY_COLOR[task.priority]}`}>
-              Prioridade {PRIORITY_LABEL[task.priority]}
-            </span>
-          )}
-        </div>
-
-        {/* Descrição */}
-        {task.description && (
-          <div className="p-5 border-b border-zinc-800">
-            <p className="text-xs text-zinc-500 uppercase tracking-wide mb-2">Descrição</p>
-            <p className="text-sm text-zinc-300 whitespace-pre-wrap leading-relaxed">{task.description}</p>
+        {loadingFull ? (
+          <div className="flex items-center justify-center py-12 text-zinc-600">
+            <Loader2 size={20} className="animate-spin mr-2" /> Carregando detalhes...
           </div>
-        )}
+        ) : (
+          <>
+            {/* Meta */}
+            <div className="p-5 border-b border-zinc-800 flex flex-wrap gap-2">
+              {t.agent_id && (
+                <span className="flex items-center gap-1.5 px-2.5 py-1 bg-zinc-800 rounded-lg text-sm text-zinc-300">
+                  <span>{AGENT_EMOJI[t.agent_id] || "🤖"}</span> {t.agent_id}
+                </span>
+              )}
+              {t.project_code && (
+                <span className="px-2.5 py-1 rounded-lg text-xs font-mono font-semibold"
+                  style={{ backgroundColor: vColor + "22", color: vColor }}>{t.project_code}</span>
+              )}
+              {t.vertical && <span className="px-2.5 py-1 bg-zinc-800 rounded-lg text-xs text-zinc-400">{t.vertical}</span>}
+              <span className={`px-2.5 py-1 bg-zinc-800 rounded-lg text-xs font-medium ${STATUS_COLOR[t.status] || "text-zinc-400"}`}>
+                {STATUS_LABEL[t.status] || t.status}
+              </span>
+              {t.priority && (
+                <span className={`px-2.5 py-1 bg-zinc-800 rounded-lg text-xs ${PRIORITY_COLOR[t.priority]}`}>
+                  Prioridade {PRIORITY_LABEL[t.priority]}
+                </span>
+              )}
+            </div>
 
-        {/* Entrega */}
-        {task.deliverable_url && (
-          <div className="p-5 border-b border-zinc-800">
-            <p className="text-xs text-zinc-500 uppercase tracking-wide mb-2">Entrega</p>
-            <a href={task.deliverable_url} target="_blank" rel="noopener noreferrer"
-              className="flex items-center gap-2 text-sm hover:underline" style={{ color: vColor }}>
-              <ExternalLink size={14} />
-              <span className="break-all">{task.deliverable_url}</span>
-            </a>
-          </div>
-        )}
+            {/* Descrição */}
+            {t.description ? (
+              <div className="p-5 border-b border-zinc-800">
+                <p className="text-xs text-zinc-500 uppercase tracking-wide mb-2">Descrição</p>
+                <p className="text-sm text-zinc-300 whitespace-pre-wrap leading-relaxed">{t.description}</p>
+              </div>
+            ) : (
+              <div className="p-5 border-b border-zinc-800">
+                <p className="text-xs text-zinc-500 uppercase tracking-wide mb-1">Descrição</p>
+                <p className="text-sm text-zinc-600 italic">Sem descrição cadastrada.</p>
+              </div>
+            )}
 
-        {/* Timestamps */}
-        <div className="p-5 text-xs text-zinc-600 space-y-1">
-          {task.updated_at && <p>Atualizado: {timeAgo(task.updated_at)}</p>}
-          {task.completed_at && <p>Concluído: {timeAgo(task.completed_at)}</p>}
-        </div>
+            {/* Notas */}
+            {(t as any).notes && (
+              <div className="p-5 border-b border-zinc-800">
+                <p className="text-xs text-zinc-500 uppercase tracking-wide mb-2">Notas</p>
+                <p className="text-sm text-zinc-300 whitespace-pre-wrap leading-relaxed">{(t as any).notes}</p>
+              </div>
+            )}
+
+            {/* Entrega */}
+            {t.deliverable_url && (
+              <div className="p-5 border-b border-zinc-800">
+                <p className="text-xs text-zinc-500 uppercase tracking-wide mb-2">Entrega</p>
+                <a href={t.deliverable_url} target="_blank" rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-sm hover:underline" style={{ color: vColor }}>
+                  <ExternalLink size={14} />
+                  <span className="break-all">{t.deliverable_url}</span>
+                </a>
+              </div>
+            )}
+
+            {/* Timestamps */}
+            <div className="p-5 text-xs text-zinc-600 space-y-1">
+              {t.updated_at && <p>Atualizado: {timeAgo(t.updated_at)}</p>}
+              {t.completed_at && <p>Concluído: {timeAgo(t.completed_at)}</p>}
+            </div>
+          </>
+        )}
       </div>
     </>
   );
