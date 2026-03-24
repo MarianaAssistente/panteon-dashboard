@@ -1,23 +1,22 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
-import { Canvas } from "@react-three/fiber";
-import { OrbitControls, Stars, Text } from "@react-three/drei";
-import { useFrame } from "@react-three/fiber";
+import { useEffect, useState, useRef, Suspense } from "react";
+import { Canvas, useFrame } from "@react-three/fiber";
+import { OrbitControls, Stars, Html } from "@react-three/drei";
 import * as THREE from "three";
 
 const SUPABASE_URL = "https://duogqvusxueetapcvsfp.supabase.co";
 const ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1b2dxdnVzeHVlZXRhcGN2c2ZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4MzEzMTgsImV4cCI6MjA4ODQwNzMxOH0.QVhn2X8oXZ88nxKD3snvDUxwmlfsK80IM1n-4iINg1o";
 
 const AGENTS_STATIC = [
-  { id: "mariana",  name: "Mariana",  role: "CEO",  color: "#D4AF37" },
-  { id: "atena",    name: "Atena",    role: "CSO",  color: "#6366f1" },
-  { id: "hefesto",  name: "Hefesto",  role: "CTO",  color: "#f97316" },
-  { id: "apollo",   name: "Apollo",   role: "CCO",  color: "#22c55e" },
-  { id: "afrodite", name: "Afrodite", role: "CMO",  color: "#ec4899" },
-  { id: "hera",     name: "Hera",     role: "COO",  color: "#06b6d4" },
-  { id: "ares",     name: "Ares",     role: "CQO",  color: "#ef4444" },
-  { id: "hestia",   name: "Héstia",   role: "CPA",  color: "#8b5cf6" },
+  { id: "mariana",  name: "Mariana",  role: "CEO", color: "#D4AF37" },
+  { id: "atena",    name: "Atena",    role: "CSO", color: "#6366f1" },
+  { id: "hefesto",  name: "Hefesto",  role: "CTO", color: "#f97316" },
+  { id: "apollo",   name: "Apollo",   role: "CCO", color: "#22c55e" },
+  { id: "afrodite", name: "Afrodite", role: "CMO", color: "#ec4899" },
+  { id: "hera",     name: "Hera",     role: "COO", color: "#06b6d4" },
+  { id: "ares",     name: "Ares",     role: "CQO", color: "#ef4444" },
+  { id: "hestia",   name: "Héstia",   role: "CPA", color: "#8b5cf6" },
 ];
 
 const STATUS_COLORS: Record<string, string> = {
@@ -28,18 +27,12 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 interface AgentData {
-  id: string;
-  name: string;
-  role: string;
-  color: string;
-  status: string;
-  activeTask?: string;
+  id: string; name: string; role: string; color: string;
+  status: string; activeTask?: string;
 }
 
 function AgentRoom({ agent, position, onClick }: {
-  agent: AgentData;
-  position: [number, number, number];
-  onClick: () => void;
+  agent: AgentData; position: [number, number, number]; onClick: () => void;
 }) {
   const groupRef = useRef<THREE.Group>(null);
   const [hovered, setHovered] = useState(false);
@@ -60,63 +53,59 @@ function AgentRoom({ agent, position, onClick }: {
       onPointerOut={() => { setHovered(false); document.body.style.cursor = "default"; }}
     >
       {/* Piso */}
-      <mesh position={[0, -0.05, 0]} receiveShadow>
-        <boxGeometry args={[5.2, 0.1, 5.2]} />
-        <meshStandardMaterial color={agent.color} opacity={0.25} transparent roughness={0.8} />
+      <mesh position={[0, -0.05, 0]}>
+        <boxGeometry args={[5.2, 0.12, 5.2]} />
+        <meshStandardMaterial color={agent.color} opacity={0.3} transparent roughness={0.7} />
       </mesh>
-
-      {/* Borda do piso */}
-      <mesh position={[0, -0.08, 0]}>
-        <boxGeometry args={[5.4, 0.04, 5.4]} />
-        <meshStandardMaterial color={agent.color} opacity={0.5} transparent />
+      {/* Borda */}
+      <mesh position={[0, -0.1, 0]}>
+        <boxGeometry args={[5.5, 0.04, 5.5]} />
+        <meshStandardMaterial color={agent.color} opacity={0.6} transparent />
       </mesh>
 
       {/* Avatar esfera */}
-      <mesh position={[0, 1.1, 0]} castShadow>
+      <mesh position={[0, 1.1, 0]}>
         <sphereGeometry args={[0.65, 32, 32]} />
         <meshStandardMaterial
           color={agent.color}
           emissive={agent.color}
-          emissiveIntensity={0.4}
-          roughness={0.3}
-          metalness={0.2}
+          emissiveIntensity={0.5}
+          roughness={0.2}
+          metalness={0.3}
         />
       </mesh>
 
-      {/* Luz pontual sobre o avatar */}
-      <pointLight position={[0, 3, 0]} color={agent.color} intensity={1.2} distance={5} />
+      {/* Luz do agente */}
+      <pointLight position={[0, 3, 0]} color={agent.color} intensity={1.5} distance={6} />
 
       {/* Indicador de status */}
-      <mesh position={[0.9, 1.9, 0.9]}>
-        <sphereGeometry args={[0.14, 16, 16]} />
-        <meshStandardMaterial color={statusColor} emissive={statusColor} emissiveIntensity={2} />
+      <mesh position={[0.9, 2.0, 0.9]}>
+        <sphereGeometry args={[0.15, 16, 16]} />
+        <meshStandardMaterial color={statusColor} emissive={statusColor} emissiveIntensity={2.5} />
       </mesh>
 
-      {/* Nome */}
-      <Text position={[0, 2.4, 0]} fontSize={0.38} color="#FFFFFF" anchorX="center" anchorY="middle" renderOrder={1}>
-        {agent.name}
-      </Text>
-
-      {/* Cargo */}
-      <Text position={[0, 1.9, 0]} fontSize={0.24} color={agent.color} anchorX="center" anchorY="middle" renderOrder={1}>
-        {agent.role}
-      </Text>
-
-      {/* Task ativa */}
-      {agent.activeTask && (
-        <Text
-          position={[0, 0.25, 2.5]}
-          fontSize={0.17}
-          color="rgba(255,255,255,0.6)"
-          maxWidth={4.5}
-          anchorX="center"
-          anchorY="middle"
-          textAlign="center"
-          renderOrder={1}
-        >
-          {agent.activeTask.slice(0, 45)}
-        </Text>
-      )}
+      {/* Label HTML */}
+      <Html position={[0, 2.7, 0]} center distanceFactor={10}>
+        <div style={{
+          textAlign: "center", pointerEvents: "none",
+          textShadow: "0 1px 4px rgba(0,0,0,0.9)",
+        }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#fff", whiteSpace: "nowrap" }}>
+            {agent.name}
+          </div>
+          <div style={{ fontSize: 10, color: agent.color, marginTop: 1, whiteSpace: "nowrap" }}>
+            {agent.role}
+          </div>
+          {agent.activeTask && (
+            <div style={{
+              fontSize: 9, color: "rgba(255,255,255,0.5)", marginTop: 3,
+              maxWidth: 100, lineHeight: 1.3,
+            }}>
+              {agent.activeTask.slice(0, 35)}
+            </div>
+          )}
+        </div>
+      </Html>
     </group>
   );
 }
@@ -135,58 +124,42 @@ export default function Office3D() {
     ]).then(([statuses, tasks]) => {
       const statusMap: Record<string, string> = {};
       if (Array.isArray(statuses)) statuses.forEach((s: { agent_id: string; status: string }) => { statusMap[s.agent_id] = s.status; });
-
       const taskMap: Record<string, string> = {};
       if (Array.isArray(tasks)) tasks.forEach((t: { agent_id: string; title: string }) => { if (!taskMap[t.agent_id]) taskMap[t.agent_id] = t.title; });
-
-      setAgents(AGENTS_STATIC.map((a) => ({
-        ...a,
-        status: statusMap[a.id] || "standby",
-        activeTask: taskMap[a.id],
-      })));
+      setAgents(AGENTS_STATIC.map((a) => ({ ...a, status: statusMap[a.id] || "standby", activeTask: taskMap[a.id] })));
     }).catch(() => {});
   }, []);
 
-  const getPos = (i: number): [number, number, number] => {
-    const col = i % 4;
-    const row = Math.floor(i / 4);
-    return [col * 7, 0, row * 7];
-  };
+  const getPos = (i: number): [number, number, number] => [
+    (i % 4) * 7, 0, Math.floor(i / 4) * 7,
+  ];
 
   return (
-    <div style={{ position: "absolute", inset: 0, background: "#0A0A0A" }}>
+    <div style={{ position: "absolute", inset: 0 }}>
       <Canvas
         camera={{ position: [10.5, 16, 22], fov: 50 }}
-        gl={{ antialias: true, alpha: false }}
-        shadows
-        style={{ width: "100%", height: "100%" }}
+        gl={{ antialias: true }}
+        style={{ width: "100%", height: "100%", background: "#0A0A0A" }}
       >
-        {/* Iluminação */}
         <color attach="background" args={["#0A0A0A"]} />
-        <ambientLight intensity={1.5} />
-        <directionalLight position={[15, 25, 15]} intensity={2} castShadow />
-        <directionalLight position={[-10, 15, -10]} intensity={1} />
-        <hemisphereLight args={["#ffffff", "#1a1a2e", 0.6]} />
+        <ambientLight intensity={2} />
+        <directionalLight position={[20, 30, 20]} intensity={2.5} />
+        <directionalLight position={[-10, 20, -10]} intensity={1.2} />
 
-        <Stars radius={120} depth={60} count={1000} factor={2} saturation={0} fade />
+        <Suspense fallback={null}>
+          <Stars radius={120} depth={60} count={800} factor={2} saturation={0} fade />
 
-        <OrbitControls
-          enableRotate={true}
-          enablePan={true}
-          enableZoom={true}
-          minDistance={6}
-          maxDistance={40}
-          maxPolarAngle={Math.PI / 2.2}
-        />
+          {agents.map((agent, i) => (
+            <AgentRoom
+              key={agent.id}
+              agent={agent}
+              position={getPos(i)}
+              onClick={() => setSelected(agent)}
+            />
+          ))}
+        </Suspense>
 
-        {agents.map((agent, i) => (
-          <AgentRoom
-            key={agent.id}
-            agent={agent}
-            position={getPos(i)}
-            onClick={() => setSelected(agent)}
-          />
-        ))}
+        <OrbitControls enableRotate enablePan enableZoom minDistance={6} maxDistance={40} maxPolarAngle={Math.PI / 2.1} />
       </Canvas>
 
       {/* Painel lateral */}
@@ -200,21 +173,16 @@ export default function Office3D() {
             position: "absolute", top: 16, right: 16, background: "transparent",
             border: "none", color: "#888", fontSize: 20, cursor: "pointer",
           }}>✕</button>
-
-          <div style={{ width: 48, height: 48, borderRadius: "50%", background: selected.color, marginBottom: 16, opacity: 0.9 }} />
+          <div style={{ width: 48, height: 48, borderRadius: "50%", background: selected.color, marginBottom: 16 }} />
           <h2 style={{ fontSize: 18, fontWeight: 600, margin: "0 0 4px" }}>{selected.name}</h2>
           <p style={{ fontSize: 13, color: "#D4AF37", margin: "0 0 20px" }}>{selected.role}</p>
-
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
             <span style={{ fontSize: 12, color: "#888" }}>Status</span>
-            <span style={{ fontSize: 13, color: STATUS_COLORS[selected.status] || "#9ca3af", fontWeight: 500 }}>
-              {selected.status}
-            </span>
+            <span style={{ fontSize: 13, color: STATUS_COLORS[selected.status] || "#9ca3af", fontWeight: 500 }}>{selected.status}</span>
           </div>
-
           {selected.activeTask && (
             <div style={{ background: "#1a1a1a", border: "1px solid #2a2a2a", borderRadius: 8, padding: 12, marginTop: 8 }}>
-              <p style={{ fontSize: 11, color: "#888", margin: "0 0 6px", textTransform: "uppercase", letterSpacing: "0.05em" }}>Task Ativa</p>
+              <p style={{ fontSize: 11, color: "#888", margin: "0 0 6px", textTransform: "uppercase" }}>Task Ativa</p>
               <p style={{ fontSize: 13, margin: 0 }}>{selected.activeTask}</p>
             </div>
           )}
