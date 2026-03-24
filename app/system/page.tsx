@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   Clock, Activity, CheckCircle, XCircle, AlertCircle,
-  RefreshCw, Server, Terminal, Calendar, PlayCircle, Zap, Users
+  RefreshCw, Server, Terminal, Calendar, PlayCircle, Zap, Users,
+  Cpu, HardDrive, Wifi, ArrowUpCircle, ArrowDownCircle
 } from "lucide-react";
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -119,11 +120,248 @@ function AgentStatusBadge({ status }: { status: string }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
+// VPS MONITOR TYPES & COMPONENTS
+// ═══════════════════════════════════════════════════════════════════════
+
+interface VpsMetrics {
+  timestamp: number;
+  cpu: { percent: number; count: number };
+  memory: { total_gb: number; used_gb: number; percent: number };
+  disk: { total_gb: number; used_gb: number; percent: number };
+  network: { bytes_sent_mb: number; bytes_recv_mb: number };
+  processes: Record<string, boolean>;
+  uptime_seconds: number;
+}
+
+function formatUptime(seconds: number) {
+  const d = Math.floor(seconds / 86400);
+  const h = Math.floor((seconds % 86400) / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  if (d > 0) return `${d}d ${h}h ${m}m`;
+  if (h > 0) return `${h}h ${m}m`;
+  return `${m}m`;
+}
+
+function GaugeBar({ percent, label, sublabel }: { percent: number; label: string; sublabel?: string }) {
+  const color =
+    percent >= 85 ? "bg-red-500" :
+    percent >= 70 ? "bg-amber-400" :
+    "bg-emerald-500";
+  const textColor =
+    percent >= 85 ? "text-red-400" :
+    percent >= 70 ? "text-amber-400" :
+    "text-emerald-400";
+
+  return (
+    <div>
+      <div className="flex justify-between mb-1.5">
+        <span className="text-sm text-zinc-300">{label}</span>
+        <span className={`text-sm font-bold ${textColor}`}>{percent.toFixed(1)}%</span>
+      </div>
+      <div className="w-full bg-zinc-800 rounded-full h-2.5">
+        <div
+          className={`h-2.5 rounded-full transition-all duration-500 ${color}`}
+          style={{ width: `${Math.min(percent, 100)}%` }}
+        />
+      </div>
+      {sublabel && <div className="text-xs text-zinc-500 mt-1">{sublabel}</div>}
+    </div>
+  );
+}
+
+function VpsMonitor() {
+  const [metrics, setMetrics] = useState<VpsMetrics | null>(null);
+  const [vpsError, setVpsError] = useState<string | null>(null);
+  const [vpsLoading, setVpsLoading] = useState(true);
+
+  const fetchMetrics = useCallback(async () => {
+    try {
+      const res = await fetch("/api/system/metrics", { cache: "no-store" });
+      if (!res.ok) throw new Error("VPS offline");
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      setMetrics(data);
+      setVpsError(null);
+    } catch (err: any) {
+      setVpsError(err.message);
+      setMetrics(null);
+    } finally {
+      setVpsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchMetrics();
+    const interval = setInterval(fetchMetrics, 5000);
+    return () => clearInterval(interval);
+  }, [fetchMetrics]);
+
+  if (vpsLoading) {
+    return (
+      <div className="flex items-center justify-center h-48 text-zinc-500">
+        <RefreshCw className="w-5 h-5 animate-spin mr-2" /> Conectando ao VPS...
+      </div>
+    );
+  }
+
+  if (vpsError || !metrics) {
+    return (
+      <div className="flex flex-col items-center justify-center h-48 gap-3">
+        <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-xl text-center max-w-md">
+          <Server className="w-8 h-8 text-red-400 mx-auto mb-2" />
+          <div className="text-red-400 font-semibold mb-1">VPS Offline</div>
+          <div className="text-red-300/70 text-sm">{vpsError || "Não foi possível obter métricas"}</div>
+        </div>
+      </div>
+    );
+  }
+
+  const alerts = [];
+  if (metrics.cpu.percent > 80) alerts.push({ msg: `CPU em ${metrics.cpu.percent.toFixed(1)}%`, level: "red" });
+  if (metrics.memory.percent > 90) alerts.push({ msg: `RAM em ${metrics.memory.percent.toFixed(1)}%`, level: "red" });
+  if (metrics.disk.percent > 85) alerts.push({ msg: `Disco em ${metrics.disk.percent.toFixed(1)}%`, level: "yellow" });
+
+  return (
+    <div className="space-y-6">
+      {/* Alertas */}
+      {alerts.length > 0 && (
+        <div className="space-y-2">
+          {alerts.map((a, i) => (
+            <div key={i} className={`flex items-center gap-2 px-4 py-3 rounded-lg border text-sm font-medium ${
+              a.level === "red"
+                ? "bg-red-500/10 border-red-500/40 text-red-400"
+                : "bg-amber-500/10 border-amber-500/40 text-amber-400"
+            }`}>
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              ⚠️ {a.msg} — atenção necessária
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Cards de métricas */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {/* CPU */}
+        <div className="bg-zinc-900/60 border border-zinc-800 rounded-xl p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <Cpu className="w-4 h-4 text-[#D4AF37]" />
+            <span className="text-zinc-400 text-sm">CPU</span>
+          </div>
+          <div className={`text-3xl font-bold ${metrics.cpu.percent > 80 ? "text-red-400" : metrics.cpu.percent > 70 ? "text-amber-400" : "text-emerald-400"}`}>
+            {metrics.cpu.percent.toFixed(1)}%
+          </div>
+          <div className="text-xs text-zinc-500">{metrics.cpu.count} vCPUs</div>
+          <div className="w-full bg-zinc-800 rounded-full h-1.5">
+            <div className={`h-1.5 rounded-full ${metrics.cpu.percent > 80 ? "bg-red-500" : metrics.cpu.percent > 70 ? "bg-amber-400" : "bg-emerald-500"}`} style={{ width: `${metrics.cpu.percent}%` }} />
+          </div>
+        </div>
+
+        {/* RAM */}
+        <div className="bg-zinc-900/60 border border-zinc-800 rounded-xl p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <Activity className="w-4 h-4 text-[#D4AF37]" />
+            <span className="text-zinc-400 text-sm">RAM</span>
+          </div>
+          <div className={`text-3xl font-bold ${metrics.memory.percent > 90 ? "text-red-400" : metrics.memory.percent > 70 ? "text-amber-400" : "text-emerald-400"}`}>
+            {metrics.memory.percent.toFixed(1)}%
+          </div>
+          <div className="text-xs text-zinc-500">{metrics.memory.used_gb}GB / {metrics.memory.total_gb}GB</div>
+          <div className="w-full bg-zinc-800 rounded-full h-1.5">
+            <div className={`h-1.5 rounded-full ${metrics.memory.percent > 90 ? "bg-red-500" : metrics.memory.percent > 70 ? "bg-amber-400" : "bg-emerald-500"}`} style={{ width: `${metrics.memory.percent}%` }} />
+          </div>
+        </div>
+
+        {/* Disco */}
+        <div className="bg-zinc-900/60 border border-zinc-800 rounded-xl p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <HardDrive className="w-4 h-4 text-[#D4AF37]" />
+            <span className="text-zinc-400 text-sm">Disco</span>
+          </div>
+          <div className={`text-3xl font-bold ${metrics.disk.percent > 85 ? "text-red-400" : metrics.disk.percent > 70 ? "text-amber-400" : "text-emerald-400"}`}>
+            {metrics.disk.percent.toFixed(1)}%
+          </div>
+          <div className="text-xs text-zinc-500">{metrics.disk.used_gb}GB / {metrics.disk.total_gb}GB</div>
+          <div className="w-full bg-zinc-800 rounded-full h-1.5">
+            <div className={`h-1.5 rounded-full ${metrics.disk.percent > 85 ? "bg-red-500" : metrics.disk.percent > 70 ? "bg-amber-400" : "bg-emerald-500"}`} style={{ width: `${metrics.disk.percent}%` }} />
+          </div>
+        </div>
+
+        {/* Uptime */}
+        <div className="bg-zinc-900/60 border border-zinc-800 rounded-xl p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <Clock className="w-4 h-4 text-[#D4AF37]" />
+            <span className="text-zinc-400 text-sm">Uptime</span>
+          </div>
+          <div className="text-2xl font-bold text-[#D4AF37]">
+            {formatUptime(metrics.uptime_seconds)}
+          </div>
+          <div className="text-xs text-zinc-500">desde o último boot</div>
+        </div>
+      </div>
+
+      {/* Processos + Rede */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Processos críticos */}
+        <div className="bg-zinc-900/60 border border-zinc-800 rounded-xl p-4">
+          <h3 className="text-sm font-medium text-zinc-400 mb-3 flex items-center gap-2">
+            <Server className="w-4 h-4 text-[#D4AF37]" /> Processos Críticos
+          </h3>
+          <div className="grid grid-cols-2 gap-2">
+            {Object.entries(metrics.processes).map(([name, running]) => (
+              <div key={name} className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${
+                running ? "bg-emerald-500/10 border-emerald-500/30" : "bg-red-500/10 border-red-500/30"
+              }`}>
+                {running
+                  ? <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
+                  : <XCircle className="w-4 h-4 text-red-400 shrink-0" />}
+                <span className={`text-sm font-medium capitalize ${running ? "text-emerald-300" : "text-red-300"}`}>
+                  {name}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Rede */}
+        <div className="bg-zinc-900/60 border border-zinc-800 rounded-xl p-4">
+          <h3 className="text-sm font-medium text-zinc-400 mb-3 flex items-center gap-2">
+            <Wifi className="w-4 h-4 text-[#D4AF37]" /> Tráfego de Rede
+          </h3>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <ArrowUpCircle className="w-4 h-4 text-blue-400" />
+                <span className="text-sm text-zinc-400">Enviado</span>
+              </div>
+              <span className="text-sm font-mono text-blue-300">{metrics.network.bytes_sent_mb.toLocaleString("pt-BR", { maximumFractionDigits: 0 })} MB</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <ArrowDownCircle className="w-4 h-4 text-violet-400" />
+                <span className="text-sm text-zinc-400">Recebido</span>
+              </div>
+              <span className="text-sm font-mono text-violet-300">{metrics.network.bytes_recv_mb.toLocaleString("pt-BR", { maximumFractionDigits: 0 })} MB</span>
+            </div>
+          </div>
+          <div className="mt-4 pt-3 border-t border-zinc-800 text-xs text-zinc-600">
+            Atualizado: {new Date(metrics.timestamp * 1000).toLocaleTimeString("pt-BR")}
+            <span className="ml-2 inline-flex items-center gap-1 text-emerald-500">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse inline-block" />
+              live
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════
 // PAGE
 // ═══════════════════════════════════════════════════════════════════════
 
 export default function SystemPage() {
-  const [activeTab, setActiveTab] = useState<"crons" | "heartbeats">("crons");
+  const [activeTab, setActiveTab] = useState<"vps" | "crons" | "heartbeats">("vps");
   const [crons, setCrons] = useState<CronJob[]>([]);
   const [heartbeats, setHeartbeats] = useState<Heartbeat[]>([]);
   const [summary, setSummary] = useState<Summary | null>(null);
@@ -236,6 +474,7 @@ export default function SystemPage() {
         {/* Tabs */}
         <div className="flex gap-4 border-b border-zinc-800 mb-6">
           {[
+            { key: "vps", label: "Monitor VPS", icon: Server },
             { key: "crons", label: "Crons Agendados", icon: Terminal },
             { key: "heartbeats", label: "Heartbeats dos Agentes", icon: Activity },
           ].map(({ key, label, icon: Icon }) => (
@@ -244,7 +483,7 @@ export default function SystemPage() {
               onClick={() => setActiveTab(key as any)}
               className={`pb-3 px-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
                 activeTab === key
-                  ? "border-violet-500 text-violet-400"
+                  ? `${key === "vps" ? "border-[#D4AF37] text-[#D4AF37]" : "border-violet-500 text-violet-400"}`
                   : "border-transparent text-zinc-500 hover:text-zinc-300"
               }`}
             >
@@ -253,6 +492,9 @@ export default function SystemPage() {
             </button>
           ))}
         </div>
+
+        {/* VPS MONITOR */}
+        {activeTab === "vps" && <VpsMonitor />}
 
         {/* CRONS */}
         {activeTab === "crons" && (
