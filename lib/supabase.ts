@@ -7,7 +7,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-export type AgentStatus = 'idle' | 'working' | 'blocked'
+export type AgentStatus = 'idle' | 'working' | 'blocked' | 'standby'
 export type TaskStatus = 'backlog' | 'in_progress' | 'review' | 'done' | 'blocked'
 export type ApprovalStatus = 'pending' | 'approved' | 'adjusted' | 'rejected' | null
 export type DeliverableType = 'video' | 'image' | 'text' | 'document' | 'link'

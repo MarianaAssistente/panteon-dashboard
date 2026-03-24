@@ -7,9 +7,10 @@ interface AgentCardProps {
 }
 
 const statusConfig = {
-  working:  { emoji: "🟢", label: "Ativo",        ring: "ring-green-400/20",  border: "border-green-400/20" },
-  idle:     { emoji: "⚪️", label: "Ocioso",       ring: "ring-gray-500/10",   border: "border-[#D4AF37]/15" },
-  blocked:  { emoji: "🔴", label: "Bloqueado",    ring: "ring-red-500/20",    border: "border-red-500/20"   },
+  working:  { emoji: "🟢", label: "Ativo",        ring: "ring-green-400/20",   border: "border-green-400/20",  dotColor: "#22c55e" },
+  idle:     { emoji: "🟡", label: "Ocioso",       ring: "ring-amber-400/20",   border: "border-amber-400/20",  dotColor: "#f59e0b" },
+  standby:  { emoji: "⚫", label: "Standby",      ring: "ring-gray-500/10",    border: "border-[#D4AF37]/15",  dotColor: "#6b7280" },
+  blocked:  { emoji: "🔴", label: "Bloqueado",    ring: "ring-red-500/20",     border: "border-red-500/20",    dotColor: "#ef4444" },
 };
 
 const INITIALS: Record<string, string> = {
@@ -46,10 +47,7 @@ export default function AgentCard({ agent, lastTask, pendingCount = 0 }: AgentCa
       <p className="text-[#F5F5F5]/40 text-xs">{agent.role}</p>
 
       {/* Status label */}
-      <p className={`text-xs mt-1 font-medium ${
-        agent.status === 'working' ? 'text-green-400' :
-        agent.status === 'blocked' ? 'text-red-400' : 'text-[#F5F5F5]/30'
-      }`}>
+      <p className="text-xs mt-1 font-medium" style={{ color: sc.dotColor }}>
         {sc.label}
       </p>
 

@@ -22,6 +22,7 @@ interface DashboardData {
   pendingByAgent: Record<string, number>;
   lastTaskByAgent: Record<string, string>;
   lastActivityByAgent: Record<string, string>; // ISO timestamp
+  agentStatusMap: Record<string, string>;
   dayCost: number;
   monthCost: number;
   loadedAt: Date;
@@ -33,7 +34,7 @@ async function fetchData(): Promise<DashboardData> {
   const todayISO = todayStart.toISOString();
   const monthStart = new Date(todayStart.getFullYear(), todayStart.getMonth(), 1).toISOString().split("T")[0];
 
-  const [agentsRes, recentRes, doneRes, inProgressRes, backlogRes, pendingRes, dayCostRes, monthCostRes, activityRes] =
+  const [agentsRes, recentRes, doneRes, inProgressRes, backlogRes, pendingRes, dayCostRes, monthCostRes, activityRes, agentStatusRes] =
     await Promise.all([
       supabase.from("agents").select("*").order("name"),
       // Atividade recente (últimas 20 tasks atualizadas)
@@ -62,6 +63,8 @@ async function fetchData(): Promise<DashboardData> {
       supabase.from("tasks").select("agent_id, updated_at, title")
         .in("status", ["in_progress", "review"])
         .order("updated_at", { ascending: false }).limit(50),
+      // Status real dos agentes via tabela agent_status
+      supabase.from("agent_status").select("agent_id, status, updated_at"),
     ]);
 
   const pendingByAgent: Record<string, number> = {};
@@ -86,6 +89,11 @@ async function fetchData(): Promise<DashboardData> {
     }
   }
 
+  const agentStatusMap: Record<string, string> = {};
+  for (const row of agentStatusRes.data ?? []) {
+    if (row.agent_id) agentStatusMap[row.agent_id] = row.status;
+  }
+
   return {
     agents: agentsRes.data?.length ? agentsRes.data as Agent[] : AGENTS_STATIC,
     recentTasks: (recentRes.data ?? []) as Task[],
@@ -96,16 +104,11 @@ async function fetchData(): Promise<DashboardData> {
     pendingByAgent,
     lastTaskByAgent,
     lastActivityByAgent,
+    agentStatusMap,
     dayCost: (dayCostRes.data ?? []).reduce((s, m) => s + Number(m.estimated_cost_usd), 0),
     monthCost: (monthCostRes.data ?? []).reduce((s, m) => s + Number(m.estimated_cost_usd), 0),
     loadedAt: new Date(),
   };
-}
-
-function agentSessionStatus(lastActivity: string | undefined): "active" | "idle" {
-  // Só aparece "ativo" se tem task in_progress/review atualizada nas últimas 2h
-  if (!lastActivity) return "idle";
-  return "active";
 }
 
 export default function DashboardPage() {
@@ -235,8 +238,8 @@ export default function DashboardPage() {
       <CollapsibleSection title="Agentes do Panteão" color="#D4AF37" count={data.agents.length} defaultOpen>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 pt-1">
           {data.agents.map((agent) => {
-            const isActive = agentSessionStatus(data.lastActivityByAgent[agent.id]) === "active";
-            const agentDisplay = { ...agent, status: (isActive ? "working" : "idle") as import("@/lib/supabase").AgentStatus };
+            const agentStatus = data.agentStatusMap[agent.id] ?? "standby";
+            const agentDisplay = { ...agent, status: agentStatus as import("@/lib/supabase").AgentStatus };
             return (
               <AgentCard
                 key={agent.id}
