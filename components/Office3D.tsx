@@ -807,6 +807,17 @@ function OfficeScene({ agents, onSelect, delegation, onDelegationComplete }: {
 
 // ── Main export ────────────────────────────────────────────────────────────
 
+const AGENT_DESCRIPTIONS: Record<string, string> = {
+  mariana:  "CEO do Panteão. Coordena todos os agentes, decompõe demandas do Yuri, delega tarefas e acompanha entregas. Ponto central de todas as operações.",
+  atena:    "CSO — Chief Strategy Officer. Responsável por pesquisas de mercado, análise de dados, benchmarks e inteligência estratégica para todas as verticais.",
+  hefesto:  "CTO — Chief Technology Officer. Desenvolve código, landing pages, automações, APIs e infraestrutura técnica do Panteão.",
+  apollo:   "CCO — Chief Content Officer. Produz textos, roteiros, e-books, posts e qualquer conteúdo escrito para o Yuri e as verticais.",
+  afrodite: "CMO — Chief Marketing Officer. Cria campanhas, copies, briefings e estratégias de marketing para STM Capital e STM Digital.",
+  hera:     "COO — Chief Operations Officer. Gerencia processos, prazos, coordenação operacional e fluxos de trabalho entre os agentes.",
+  ares:     "CQO — Chief Quality Officer. Revisa entregas, faz QA de código e conteúdo, garante padrão de qualidade antes de ir para o Yuri.",
+  hestia:   "CPA — Chief Personal Assistant. Cuida da agenda pessoal do Yuri, viagens, lembretes e tarefas do dia a dia.",
+};
+
 const AGENT_MODELS: Record<string, string> = {
   mariana:  "claude-sonnet-4-6",
   atena:    "claude-sonnet-4-6",
@@ -993,19 +1004,32 @@ export default function Office3D() {
             <button onClick={() => { setSelected(null); setShowDispatch(false); setDispatchResult(null); setDispatchTask(""); }}
               style={{ position: "absolute", top: 12, right: 12, background: "rgba(255,255,255,0.05)", border: "1px solid #333", borderRadius: "50%", width: 28, height: 28, color: "#888", fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
 
-            {/* Avatar */}
+            {/* Avatar — foto real */}
             <div style={{
-              width: 56, height: 56, borderRadius: 14, marginBottom: 12,
-              background: `linear-gradient(135deg, ${selected.color} 0%, ${selected.color}88 100%)`,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 24, boxShadow: `0 4px 20px ${selected.color}44`,
+              width: 64, height: 64, borderRadius: 16, marginBottom: 12,
+              border: `2px solid ${selected.color}66`,
+              boxShadow: `0 4px 20px ${selected.color}44`,
+              overflow: "hidden", flexShrink: 0,
             }}>
-              {selected.id === "mariana" ? "👑" : selected.id === "atena" ? "🔍" : selected.id === "hefesto" ? "⚒️" : selected.id === "ares" ? "⚔️" : selected.id === "hera" ? "⚙️" : selected.id === "afrodite" ? "💄" : selected.id === "apollo" ? "🎭" : "🏠"}
+              <img
+                src={`/avatars/avatar-${selected.id}.png`}
+                alt={selected.name}
+                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = "none";
+                  (e.target as HTMLImageElement).parentElement!.style.background = selected.color;
+                  (e.target as HTMLImageElement).parentElement!.style.display = "flex";
+                  (e.target as HTMLImageElement).parentElement!.style.alignItems = "center";
+                  (e.target as HTMLImageElement).parentElement!.style.justifyContent = "center";
+                  (e.target as HTMLImageElement).parentElement!.innerHTML = `<span style="font-size:24px">${selected.name[0]}</span>`;
+                }}
+              />
             </div>
 
             <h2 style={{ fontSize: 18, fontWeight: 700, margin: "0 0 2px", color: "#fff" }}>{selected.name}</h2>
             <p style={{ fontSize: 12, color: selected.color, margin: "0 0 6px", fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase" }}>{selected.role}</p>
-            <p style={{ fontSize: 10, color: "#555", margin: 0, fontFamily: "monospace" }}>{AGENT_MODELS[selected.id] || "—"}</p>
+            <p style={{ fontSize: 10, color: "#555", margin: "0 0 10px", fontFamily: "monospace" }}>{AGENT_MODELS[selected.id] || "—"}</p>
+            <p style={{ fontSize: 12, color: "#999", margin: 0, lineHeight: 1.5 }}>{AGENT_DESCRIPTIONS[selected.id] || ""}</p>
           </div>
 
           {/* Corpo */}
