@@ -58,7 +58,7 @@ export default function ComunicacaoPage() {
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
   const [inputText, setInputText] = useState('');
   const [sending, setSending] = useState(false);
-  const [loadedGroups, setLoadedGroups] = useState<Set<string>>(new Set());
+  const [loadedGroups, setLoadedGroups] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Load messages for selected group
@@ -71,7 +71,7 @@ export default function ComunicacaoPage() {
       .limit(100);
     if (data) {
       setMessages(data);
-      setLoadedGroups(prev => new Set([...prev, chatId]));
+      setLoadedGroups(prev => prev.includes(chatId) ? prev : [...prev, chatId]);
       setUnreadCounts(prev => ({ ...prev, [chatId]: 0 }));
     }
   }, []);
