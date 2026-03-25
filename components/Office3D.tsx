@@ -976,93 +976,125 @@ export default function Office3D() {
 
       {/* Painel lateral */}
       {selected && (
-        <div
-          style={{
-            position: "absolute",
-            top: 0,
-            right: 0,
-            width: 320,
-            height: "100%",
-            background: "#111",
-            borderLeft: "1px solid #2a2a2a",
-            padding: "24px 20px",
-            overflowY: "auto",
-            color: "#F5F5F5",
-            zIndex: 10,
-          }}
-        >
-          <button
-            onClick={() => { setSelected(null); setShowDispatch(false); setDispatchResult(null); setDispatchTask(""); }}
-            style={{ position: "absolute", top: 16, right: 16, background: "transparent", border: "none", color: "#888", fontSize: 20, cursor: "pointer" }}
-          >✕</button>
+        <div style={{
+          position: "absolute", top: 0, right: 0, width: 300, height: "100%",
+          background: "linear-gradient(180deg, #0f0f0f 0%, #111 100%)",
+          borderLeft: `1px solid ${selected.color}33`,
+          overflowY: "auto", color: "#F5F5F5", zIndex: 10,
+          display: "flex", flexDirection: "column",
+        }}>
+          {/* Header com cor do agente */}
+          <div style={{
+            background: `linear-gradient(135deg, ${selected.color}22 0%, #0f0f0f 100%)`,
+            borderBottom: `1px solid ${selected.color}33`,
+            padding: "20px 18px 16px",
+            position: "relative",
+          }}>
+            <button onClick={() => { setSelected(null); setShowDispatch(false); setDispatchResult(null); setDispatchTask(""); }}
+              style={{ position: "absolute", top: 12, right: 12, background: "rgba(255,255,255,0.05)", border: "1px solid #333", borderRadius: "50%", width: 28, height: 28, color: "#888", fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
 
-          {/* Avatar */}
-          <div style={{ width: 52, height: 52, borderRadius: "50%", background: selected.color, marginBottom: 14, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22 }}>
-            {selected.id === "mariana" ? "👑" : selected.id === "atena" ? "🔍" : selected.id === "hefesto" ? "⚒️" : selected.id === "ares" ? "⚔️" : selected.id === "hera" ? "⚙️" : selected.id === "afrodite" ? "💄" : selected.id === "apollo" ? "🎭" : "🏠"}
-          </div>
-
-          <h2 style={{ fontSize: 18, fontWeight: 600, margin: "0 0 2px" }}>{selected.name}</h2>
-          <p style={{ fontSize: 13, color: "#D4AF37", margin: "0 0 4px" }}>{selected.role}</p>
-          <p style={{ fontSize: 11, color: "#666", margin: "0 0 16px" }}>{AGENT_MODELS[selected.id] || "—"}</p>
-
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
-            <span style={{ fontSize: 12, color: "#888" }}>Status</span>
-            <span style={{ fontSize: 13, color: STATUS_COLORS[selected.status] || "#9ca3af", fontWeight: 500 }}>
-              {selected.status}
-            </span>
-          </div>
-
-          {/* Tasks em andamento */}
-          <div style={{ marginBottom: 16 }}>
-            <p style={{ fontSize: 11, color: "#888", margin: "0 0 8px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-              Tasks em andamento ({selectedTasks.length})
-            </p>
-            {selectedTasks.length === 0 ? (
-              <p style={{ fontSize: 12, color: "#555", fontStyle: "italic" }}>
-                {selected.activeTask ? `↩ ${selected.activeTask}` : "Nenhuma task ativa"}
-              </p>
-            ) : (
-              <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 6 }}>
-                {selectedTasks.map((t) => (
-                  <li key={t.code} style={{ background: "#1a1a1a", border: "1px solid #2a2a2a", borderRadius: 6, padding: "8px 10px" }}>
-                    <p style={{ fontSize: 10, color: "#666", margin: "0 0 2px", fontFamily: "monospace" }}>{t.code}</p>
-                    <p style={{ fontSize: 12, margin: 0 }}>{t.title}</p>
-                    <p style={{ fontSize: 10, color: t.status === "review" ? "#f59e0b" : "#3b82f6", margin: "3px 0 0" }}>{t.status === "review" ? "em revisão" : "em andamento"}</p>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-
-          {/* Disparar tarefa */}
-          {!showDispatch ? (
-            <button
-              onClick={() => { setShowDispatch(true); setDispatchResult(null); }}
-              style={{ width: "100%", padding: "10px 0", borderRadius: 8, background: selected.color, color: "#000", border: "none", fontSize: 13, fontWeight: 700, cursor: "pointer" }}
-            >▶ Disparar tarefa</button>
-          ) : dispatchResult ? (
-            <div style={{ textAlign: "center", padding: "8px 0" }}>
-              <p style={{ fontSize: 14 }}>{dispatchResult.ok ? "✅" : "❌"}</p>
-              <p style={{ fontSize: 12, color: dispatchResult.ok ? "#22c55e" : "#ef4444" }}>{dispatchResult.message}</p>
-              <button onClick={() => { setShowDispatch(false); setDispatchResult(null); setDispatchTask(""); }} style={{ marginTop: 8, padding: "6px 16px", borderRadius: 6, background: "#333", border: "none", color: "#ccc", fontSize: 12, cursor: "pointer" }}>Fechar</button>
+            {/* Avatar */}
+            <div style={{
+              width: 56, height: 56, borderRadius: 14, marginBottom: 12,
+              background: `linear-gradient(135deg, ${selected.color} 0%, ${selected.color}88 100%)`,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 24, boxShadow: `0 4px 20px ${selected.color}44`,
+            }}>
+              {selected.id === "mariana" ? "👑" : selected.id === "atena" ? "🔍" : selected.id === "hefesto" ? "⚒️" : selected.id === "ares" ? "⚔️" : selected.id === "hera" ? "⚙️" : selected.id === "afrodite" ? "💄" : selected.id === "apollo" ? "🎭" : "🏠"}
             </div>
-          ) : (
+
+            <h2 style={{ fontSize: 18, fontWeight: 700, margin: "0 0 2px", color: "#fff" }}>{selected.name}</h2>
+            <p style={{ fontSize: 12, color: selected.color, margin: "0 0 6px", fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase" }}>{selected.role}</p>
+            <p style={{ fontSize: 10, color: "#555", margin: 0, fontFamily: "monospace" }}>{AGENT_MODELS[selected.id] || "—"}</p>
+          </div>
+
+          {/* Corpo */}
+          <div style={{ padding: "16px 18px", flex: 1, display: "flex", flexDirection: "column", gap: 16 }}>
+
+            {/* Status badge */}
+            <div style={{
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+              background: "#1a1a1a", border: `1px solid ${STATUS_COLORS[selected.status]}33`,
+              borderRadius: 10, padding: "10px 14px",
+            }}>
+              <span style={{ fontSize: 12, color: "#666" }}>Status atual</span>
+              <span style={{
+                fontSize: 12, fontWeight: 700, color: STATUS_COLORS[selected.status] || "#9ca3af",
+                display: "flex", alignItems: "center", gap: 6,
+              }}>
+                <span style={{ width: 7, height: 7, borderRadius: "50%", background: STATUS_COLORS[selected.status], display: "inline-block", boxShadow: `0 0 6px ${STATUS_COLORS[selected.status]}` }} />
+                {selected.status === "working" ? "Ativo" : selected.status === "idle" ? "Ocioso" : "Standby"}
+              </span>
+            </div>
+
+            {/* Tasks */}
             <div>
-              <textarea
-                value={dispatchTask}
-                onChange={(e) => setDispatchTask(e.target.value)}
-                rows={3}
-                placeholder="Descreva a tarefa..."
-                style={{ width: "100%", background: "#1a1a1a", border: "1px solid #333", borderRadius: 6, padding: "8px 10px", fontSize: 12, color: "#fff", resize: "none", boxSizing: "border-box", marginBottom: 8 }}
-              />
-              <div style={{ display: "flex", gap: 8 }}>
-                <button onClick={() => { setShowDispatch(false); setDispatchTask(""); }} style={{ flex: 1, padding: "8px 0", borderRadius: 6, background: "#333", border: "none", color: "#aaa", fontSize: 12, cursor: "pointer" }}>Cancelar</button>
-                <button onClick={handleDispatch} disabled={dispatchLoading || !dispatchTask.trim()} style={{ flex: 2, padding: "8px 0", borderRadius: 6, background: selected.color, border: "none", color: "#000", fontSize: 12, fontWeight: 700, cursor: "pointer", opacity: (dispatchLoading || !dispatchTask.trim()) ? 0.5 : 1 }}>
-                  {dispatchLoading ? "Enviando…" : "▶ Enviar"}
-                </button>
-              </div>
+              <p style={{ fontSize: 10, color: "#555", margin: "0 0 8px", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600 }}>
+                Tasks em andamento
+                {selectedTasks.length > 0 && <span style={{ marginLeft: 6, background: selected.color, color: "#000", borderRadius: 10, padding: "1px 7px", fontSize: 10 }}>{selectedTasks.length}</span>}
+              </p>
+              {selectedTasks.length === 0 ? (
+                <div style={{ background: "#1a1a1a", borderRadius: 8, padding: "12px 14px", textAlign: "center" }}>
+                  <p style={{ fontSize: 12, color: "#444", margin: 0 }}>Nenhuma task ativa</p>
+                  {selected.activeTask && <p style={{ fontSize: 11, color: "#555", margin: "4px 0 0", fontStyle: "italic" }}>{selected.activeTask.slice(0, 50)}</p>}
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {selectedTasks.map((t) => (
+                    <div key={t.code} style={{
+                      background: "#1a1a1a", border: "1px solid #252525",
+                      borderRadius: 8, padding: "10px 12px",
+                      borderLeft: `3px solid ${t.status === "review" ? "#f59e0b" : "#3b82f6"}`,
+                    }}>
+                      <p style={{ fontSize: 10, color: "#555", margin: "0 0 3px", fontFamily: "monospace" }}>{t.code}</p>
+                      <p style={{ fontSize: 12, margin: "0 0 4px", color: "#e5e5e5", lineHeight: 1.4 }}>{t.title}</p>
+                      <span style={{
+                        fontSize: 10, fontWeight: 600,
+                        color: t.status === "review" ? "#f59e0b" : "#3b82f6",
+                      }}>{t.status === "review" ? "⏳ em revisão" : "🔄 em andamento"}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-          )}
+
+            {/* Disparar tarefa */}
+            <div style={{ marginTop: "auto" }}>
+              {!showDispatch ? (
+                <button onClick={() => { setShowDispatch(true); setDispatchResult(null); }}
+                  style={{
+                    width: "100%", padding: "11px 0", borderRadius: 10,
+                    background: `linear-gradient(135deg, ${selected.color} 0%, ${selected.color}cc 100%)`,
+                    color: "#000", border: "none", fontSize: 13, fontWeight: 700,
+                    cursor: "pointer", letterSpacing: "0.03em",
+                    boxShadow: `0 4px 15px ${selected.color}44`,
+                  }}>
+                  ▶ Disparar tarefa
+                </button>
+              ) : dispatchResult ? (
+                <div style={{ textAlign: "center", background: "#1a1a1a", borderRadius: 10, padding: "16px" }}>
+                  <p style={{ fontSize: 20, margin: "0 0 6px" }}>{dispatchResult.ok ? "✅" : "❌"}</p>
+                  <p style={{ fontSize: 12, color: dispatchResult.ok ? "#22c55e" : "#ef4444", margin: "0 0 12px" }}>{dispatchResult.message}</p>
+                  <button onClick={() => { setShowDispatch(false); setDispatchResult(null); setDispatchTask(""); }}
+                    style={{ padding: "7px 20px", borderRadius: 8, background: "#2a2a2a", border: "1px solid #333", color: "#aaa", fontSize: 12, cursor: "pointer" }}>Fechar</button>
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  <textarea value={dispatchTask} onChange={(e) => setDispatchTask(e.target.value)} rows={3}
+                    placeholder="Descreva a tarefa para o agente..."
+                    style={{ width: "100%", background: "#1a1a1a", border: "1px solid #2a2a2a", borderRadius: 8, padding: "10px 12px", fontSize: 12, color: "#e5e5e5", resize: "none", boxSizing: "border-box", outline: "none" }} />
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button onClick={() => { setShowDispatch(false); setDispatchTask(""); }}
+                      style={{ flex: 1, padding: "9px 0", borderRadius: 8, background: "#1a1a1a", border: "1px solid #2a2a2a", color: "#888", fontSize: 12, cursor: "pointer" }}>Cancelar</button>
+                    <button onClick={handleDispatch} disabled={dispatchLoading || !dispatchTask.trim()}
+                      style={{ flex: 2, padding: "9px 0", borderRadius: 8, background: selected.color, border: "none", color: "#000", fontSize: 12, fontWeight: 700, cursor: "pointer", opacity: (dispatchLoading || !dispatchTask.trim()) ? 0.5 : 1 }}>
+                      {dispatchLoading ? "Enviando…" : "▶ Enviar"}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>
