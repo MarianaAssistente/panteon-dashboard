@@ -807,17 +807,34 @@ function OfficeScene({ agents, onSelect, delegation, onDelegationComplete }: {
 
 // ── Main export ────────────────────────────────────────────────────────────
 
+const AGENT_MODELS: Record<string, string> = {
+  mariana:  "claude-sonnet-4-6",
+  atena:    "claude-sonnet-4-6",
+  hefesto:  "claude-sonnet-4-6",
+  ares:     "claude-sonnet-4-6",
+  hera:     "claude-haiku-4-5",
+  afrodite: "claude-haiku-4-5",
+  apollo:   "claude-haiku-4-5",
+  hestia:   "claude-haiku-4-5",
+};
+
+interface ActiveTaskItem { code: string; title: string; status: string; updated_at: string; }
+
 export default function Office3D() {
   const [agents, setAgents] = useState<AgentData[]>(
     AGENTS_STATIC.map((a) => ({ ...a, status: "standby" }))
   );
   const [selected, setSelected] = useState<AgentData | null>(null);
+  const [selectedTasks, setSelectedTasks] = useState<ActiveTaskItem[]>([]);
+  const [showDispatch, setShowDispatch] = useState(false);
+  const [dispatchTask, setDispatchTask] = useState("");
+  const [dispatchLoading, setDispatchLoading] = useState(false);
+  const [dispatchResult, setDispatchResult] = useState<{ ok: boolean; message: string } | null>(null);
   const [delegation, setDelegation] = useState<{
     active: boolean;
     waypoints: [number, number, number][];
     targetName: string;
   } | null>(null);
-  const lastDispatchRef = useRef<string>("");
 
   const triggerDelegation = (agentId: string) => {
     const waypoints = getWaypoints(agentId);
@@ -825,18 +842,18 @@ export default function Office3D() {
     setDelegation({ active: true, waypoints, targetName: agentId });
   };
 
-  // Poll for dispatch commands
+  // Poll for dispatch commands (only last 60 seconds)
   useEffect(() => {
     const headers = { apikey: ANON_KEY, Authorization: `Bearer ${ANON_KEY}` };
     const interval = setInterval(async () => {
       try {
+        const sixtySecondsAgo = new Date(Date.now() - 60000).toISOString();
         const res = await fetch(
-          `${SUPABASE_URL}/rest/v1/knowledge?code=like.DISPATCH-CMD-*&order=created_at.desc&limit=1`,
+          `${SUPABASE_URL}/rest/v1/knowledge?code=like.DISPATCH-CMD-*&created_at=gte.${sixtySecondsAgo}&order=created_at.desc&limit=1`,
           { headers }
         );
         const data = await res.json();
-        if (data[0] && data[0].created_at !== lastDispatchRef.current) {
-          lastDispatchRef.current = data[0].created_at;
+        if (data[0]) {
           try {
             const content = JSON.parse(data[0].content || "{}");
             if (content.agent_id) triggerDelegation(content.agent_id);
@@ -846,6 +863,37 @@ export default function Office3D() {
     }, 10000);
     return () => clearInterval(interval);
   }, []);
+
+  // Fetch tasks for selected agent
+  useEffect(() => {
+    if (!selected) { setSelectedTasks([]); return; }
+    const headers = { apikey: ANON_KEY, Authorization: `Bearer ${ANON_KEY}` };
+    fetch(
+      `${SUPABASE_URL}/rest/v1/tasks?agent_id=eq.${selected.id}&status=in.(in_progress,review)&order=updated_at.desc&limit=10`,
+      { headers }
+    )
+      .then((r) => r.json())
+      .then((data) => { if (Array.isArray(data)) setSelectedTasks(data); })
+      .catch(() => {});
+  }, [selected?.id]);
+
+  async function handleDispatch() {
+    if (!selected || !dispatchTask.trim()) return;
+    setDispatchLoading(true);
+    try {
+      const res = await fetch("/api/dispatch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ agentId: selected.id, task: dispatchTask }),
+      });
+      const data = await res.json();
+      setDispatchResult({ ok: !!data.ok, message: data.message || data.error || "Enviado" });
+    } catch {
+      setDispatchResult({ ok: false, message: "Erro de conexão." });
+    } finally {
+      setDispatchLoading(false);
+    }
+  }
 
   useEffect(() => {
     const headers = { apikey: ANON_KEY, Authorization: `Bearer ${ANON_KEY}` };
@@ -926,38 +974,6 @@ export default function Office3D() {
         </div>
       )}
 
-      {/* Botões de teste manual */}
-      <div
-        style={{
-          position: "absolute",
-          bottom: 16,
-          left: 16,
-          zIndex: 5,
-          display: "flex",
-          gap: 8,
-          flexWrap: "wrap",
-        }}
-      >
-        {["atena", "hefesto", "apollo", "afrodite", "hera", "ares", "hestia"].map((id) => (
-          <button
-            key={id}
-            onClick={() => triggerDelegation(id)}
-            style={{
-              background: "rgba(212,175,55,0.1)",
-              border: "1px solid #D4AF37",
-              color: "#D4AF37",
-              borderRadius: 6,
-              padding: "4px 10px",
-              fontSize: 11,
-              cursor: "pointer",
-              fontWeight: 600,
-            }}
-          >
-            → {id}
-          </button>
-        ))}
-      </div>
-
       {/* Painel lateral */}
       {selected && (
         <div
@@ -965,7 +981,7 @@ export default function Office3D() {
             position: "absolute",
             top: 0,
             right: 0,
-            width: 300,
+            width: 320,
             height: "100%",
             background: "#111",
             borderLeft: "1px solid #2a2a2a",
@@ -976,57 +992,75 @@ export default function Office3D() {
           }}
         >
           <button
-            onClick={() => setSelected(null)}
-            style={{
-              position: "absolute",
-              top: 16,
-              right: 16,
-              background: "transparent",
-              border: "none",
-              color: "#888",
-              fontSize: 20,
-              cursor: "pointer",
-            }}
-          >
-            ✕
-          </button>
-          <div
-            style={{
-              width: 48,
-              height: 48,
-              borderRadius: "50%",
-              background: selected.color,
-              marginBottom: 16,
-            }}
-          />
-          <h2 style={{ fontSize: 18, fontWeight: 600, margin: "0 0 4px" }}>{selected.name}</h2>
-          <p style={{ fontSize: 13, color: "#D4AF37", margin: "0 0 20px" }}>{selected.role}</p>
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
+            onClick={() => { setSelected(null); setShowDispatch(false); setDispatchResult(null); setDispatchTask(""); }}
+            style={{ position: "absolute", top: 16, right: 16, background: "transparent", border: "none", color: "#888", fontSize: 20, cursor: "pointer" }}
+          >✕</button>
+
+          {/* Avatar */}
+          <div style={{ width: 52, height: 52, borderRadius: "50%", background: selected.color, marginBottom: 14, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22 }}>
+            {selected.id === "mariana" ? "👑" : selected.id === "atena" ? "🔍" : selected.id === "hefesto" ? "⚒️" : selected.id === "ares" ? "⚔️" : selected.id === "hera" ? "⚙️" : selected.id === "afrodite" ? "💄" : selected.id === "apollo" ? "🎭" : "🏠"}
+          </div>
+
+          <h2 style={{ fontSize: 18, fontWeight: 600, margin: "0 0 2px" }}>{selected.name}</h2>
+          <p style={{ fontSize: 13, color: "#D4AF37", margin: "0 0 4px" }}>{selected.role}</p>
+          <p style={{ fontSize: 11, color: "#666", margin: "0 0 16px" }}>{AGENT_MODELS[selected.id] || "—"}</p>
+
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
             <span style={{ fontSize: 12, color: "#888" }}>Status</span>
-            <span
-              style={{
-                fontSize: 13,
-                color: STATUS_COLORS[selected.status] || "#9ca3af",
-                fontWeight: 500,
-              }}
-            >
+            <span style={{ fontSize: 13, color: STATUS_COLORS[selected.status] || "#9ca3af", fontWeight: 500 }}>
               {selected.status}
             </span>
           </div>
-          {selected.activeTask && (
-            <div
-              style={{
-                background: "#1a1a1a",
-                border: "1px solid #2a2a2a",
-                borderRadius: 8,
-                padding: 12,
-                marginTop: 8,
-              }}
-            >
-              <p style={{ fontSize: 11, color: "#888", margin: "0 0 6px", textTransform: "uppercase" }}>
-                Task Ativa
+
+          {/* Tasks em andamento */}
+          <div style={{ marginBottom: 16 }}>
+            <p style={{ fontSize: 11, color: "#888", margin: "0 0 8px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+              Tasks em andamento ({selectedTasks.length})
+            </p>
+            {selectedTasks.length === 0 ? (
+              <p style={{ fontSize: 12, color: "#555", fontStyle: "italic" }}>
+                {selected.activeTask ? `↩ ${selected.activeTask}` : "Nenhuma task ativa"}
               </p>
-              <p style={{ fontSize: 13, margin: 0 }}>{selected.activeTask}</p>
+            ) : (
+              <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 6 }}>
+                {selectedTasks.map((t) => (
+                  <li key={t.code} style={{ background: "#1a1a1a", border: "1px solid #2a2a2a", borderRadius: 6, padding: "8px 10px" }}>
+                    <p style={{ fontSize: 10, color: "#666", margin: "0 0 2px", fontFamily: "monospace" }}>{t.code}</p>
+                    <p style={{ fontSize: 12, margin: 0 }}>{t.title}</p>
+                    <p style={{ fontSize: 10, color: t.status === "review" ? "#f59e0b" : "#3b82f6", margin: "3px 0 0" }}>{t.status === "review" ? "em revisão" : "em andamento"}</p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          {/* Disparar tarefa */}
+          {!showDispatch ? (
+            <button
+              onClick={() => { setShowDispatch(true); setDispatchResult(null); }}
+              style={{ width: "100%", padding: "10px 0", borderRadius: 8, background: selected.color, color: "#000", border: "none", fontSize: 13, fontWeight: 700, cursor: "pointer" }}
+            >▶ Disparar tarefa</button>
+          ) : dispatchResult ? (
+            <div style={{ textAlign: "center", padding: "8px 0" }}>
+              <p style={{ fontSize: 14 }}>{dispatchResult.ok ? "✅" : "❌"}</p>
+              <p style={{ fontSize: 12, color: dispatchResult.ok ? "#22c55e" : "#ef4444" }}>{dispatchResult.message}</p>
+              <button onClick={() => { setShowDispatch(false); setDispatchResult(null); setDispatchTask(""); }} style={{ marginTop: 8, padding: "6px 16px", borderRadius: 6, background: "#333", border: "none", color: "#ccc", fontSize: 12, cursor: "pointer" }}>Fechar</button>
+            </div>
+          ) : (
+            <div>
+              <textarea
+                value={dispatchTask}
+                onChange={(e) => setDispatchTask(e.target.value)}
+                rows={3}
+                placeholder="Descreva a tarefa..."
+                style={{ width: "100%", background: "#1a1a1a", border: "1px solid #333", borderRadius: 6, padding: "8px 10px", fontSize: 12, color: "#fff", resize: "none", boxSizing: "border-box", marginBottom: 8 }}
+              />
+              <div style={{ display: "flex", gap: 8 }}>
+                <button onClick={() => { setShowDispatch(false); setDispatchTask(""); }} style={{ flex: 1, padding: "8px 0", borderRadius: 6, background: "#333", border: "none", color: "#aaa", fontSize: 12, cursor: "pointer" }}>Cancelar</button>
+                <button onClick={handleDispatch} disabled={dispatchLoading || !dispatchTask.trim()} style={{ flex: 2, padding: "8px 0", borderRadius: 6, background: selected.color, border: "none", color: "#000", fontSize: 12, fontWeight: 700, cursor: "pointer", opacity: (dispatchLoading || !dispatchTask.trim()) ? 0.5 : 1 }}>
+                  {dispatchLoading ? "Enviando…" : "▶ Enviar"}
+                </button>
+              </div>
             </div>
           )}
         </div>
