@@ -410,7 +410,7 @@ function Room({
       />
 
       {/* Badge de status flutuante acima do personagem */}
-      <Html position={[0, wallH + 1.2, 0]} center>
+      <Html position={[0, wallH - 0.2, 0]} center>
         <div style={{
           background: statusColor,
           color: "#000",
@@ -495,7 +495,7 @@ function Room({
       )}
 
       {/* Nome do agente */}
-      <Html position={[0, wallH + 2.5, 0]} center>
+      <Html position={[0, wallH + 0.8, 0]} center>
         <div
           style={{
             color: "#fff",
