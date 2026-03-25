@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import Sidebar from "@/components/Sidebar";
-import ChatWidget from "@/components/ChatWidget";
+// ChatWidget removido — chat integrado na página /comunicacao
 
 export const metadata: Metadata = {
   title: "Panteão do Olimpo — STM Group",
@@ -16,7 +16,7 @@ export default function RootLayout({
   return (
     <html lang="pt-BR">
       <body className="bg-[#0A0A0A] text-[#F5F5F5] min-h-screen">
-        <ChatWidget />
+        {/* ChatWidget removido */}
         <Sidebar />
         <main className="md:ml-64 min-h-screen p-6">
           {children}

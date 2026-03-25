@@ -9,7 +9,10 @@ const supabaseServiceKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
+const MARIANA_DM_ID = 'dm-mariana';
+
 const GROUPS = [
+  { id: MARIANA_DM_ID, name: 'Mariana (CEO)', emoji: '👑', isDM: true },
   { id: '-5165806246', name: 'Comando Central', emoji: '⚡' },
   { id: '-5058435783', name: 'Panteão Digital', emoji: '🏛️' },
   { id: '-5172114972', name: 'AgiSales', emoji: '📈' },
@@ -55,6 +58,7 @@ function formatDate(dateStr: string) {
 export default function ComunicacaoPage() {
   const [selectedGroup, setSelectedGroup] = useState(GROUPS[0].id);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [dmMessages, setDmMessages] = useState<{id:string;from_name:string;text:string;date:string;isMe:boolean}[]>([]);
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
   const [inputText, setInputText] = useState('');
   const [sending, setSending] = useState(false);
@@ -129,13 +133,29 @@ export default function ComunicacaoPage() {
   const handleSend = async () => {
     if (!inputText.trim() || sending) return;
     setSending(true);
+    const text = inputText.trim();
+    setInputText('');
     try {
-      await supabase.from('outbox').insert({
-        chat_id: selectedGroup,
-        text: inputText.trim(),
-        status: 'pending',
-      });
-      setInputText('');
+      if (selectedGroup === MARIANA_DM_ID) {
+        // DM com Mariana — adiciona mensagem do usuário imediatamente
+        const userMsg = { id: Date.now().toString(), from_name: 'Yuri', text, date: new Date().toISOString(), isMe: true };
+        setDmMessages(prev => [...prev, userMsg]);
+        // Envia para Mariana via /api/chat
+        const res = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: text }),
+        });
+        const data = await res.json();
+        const reply = data.reply || data.message || data.content || '...';
+        setDmMessages(prev => [...prev, { id: (Date.now()+1).toString(), from_name: 'Mariana', text: reply, date: new Date().toISOString(), isMe: false }]);
+      } else {
+        await supabase.from('outbox').insert({
+          chat_id: selectedGroup,
+          text,
+          status: 'pending',
+        });
+      }
     } finally {
       setSending(false);
     }
@@ -228,7 +248,30 @@ export default function ComunicacaoPage() {
 
         {/* Messages */}
         <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
-          {groupedMessages.length === 0 ? (
+          {selectedGroup === MARIANA_DM_ID ? (
+            /* DM com Mariana */
+            dmMessages.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full text-zinc-600">
+                <p className="text-4xl mb-3">👑</p>
+                <p>Inicie uma conversa com Mariana</p>
+                <p className="text-sm mt-1">Mensagens aparecem aqui em tempo real</p>
+              </div>
+            ) : (
+              dmMessages.map(msg => (
+                <div key={msg.id} className={`flex gap-3 mb-3 ${msg.isMe ? 'flex-row-reverse' : ''}`}>
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${msg.isMe ? 'bg-zinc-700 text-zinc-300' : 'bg-[#D4AF37]/20 border border-[#D4AF37]/40 text-[#D4AF37]'}`}>
+                    {msg.isMe ? 'Y' : 'M'}
+                  </div>
+                  <div className={`max-w-[70%] ${msg.isMe ? 'items-end' : 'items-start'} flex flex-col`}>
+                    <div className={`rounded-2xl px-4 py-2.5 text-sm ${msg.isMe ? 'bg-zinc-700 text-zinc-100 rounded-tr-sm' : 'bg-[#1a1a1a] border border-zinc-800 text-zinc-200 rounded-tl-sm'}`}>
+                      <p className="break-words whitespace-pre-wrap">{msg.text}</p>
+                    </div>
+                    <span className="text-xs text-zinc-600 mt-1 px-1">{formatTime(msg.date)}</span>
+                  </div>
+                </div>
+              ))
+            )
+          ) : groupedMessages.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-zinc-600">
               <p className="text-4xl mb-3">💬</p>
               <p>Nenhuma mensagem ainda</p>
@@ -244,11 +287,9 @@ export default function ComunicacaoPage() {
                 </div>
                 {msgs.map(msg => (
                   <div key={msg.id} className="group flex gap-3 mb-3 hover:bg-zinc-900/50 rounded-lg p-2 -mx-2 transition-colors">
-                    {/* Avatar */}
                     <div className="w-8 h-8 rounded-full bg-[#D4AF37]/20 border border-[#D4AF37]/40 flex items-center justify-center text-xs font-bold text-[#D4AF37] flex-shrink-0">
                       {getInitials(msg.from_name || '?')}
                     </div>
-                    {/* Content */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-baseline gap-2">
                         <span className={`text-sm font-semibold ${msg.is_bot ? 'text-[#D4AF37]' : 'text-zinc-200'}`}>
@@ -259,7 +300,6 @@ export default function ComunicacaoPage() {
                       </div>
                       <p className="text-sm text-zinc-300 mt-0.5 break-words whitespace-pre-wrap">{msg.text || '(mídia)'}</p>
                     </div>
-                    {/* Actions */}
                     <div className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
                       <button
                         onClick={() => handleCreateTask(msg)}
