@@ -906,36 +906,58 @@ export default function Office3D() {
     }
   }
 
-  useEffect(() => {
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fetchAgentStatus = async () => {
+    setRefreshing(true);
     const headers = { apikey: ANON_KEY, Authorization: `Bearer ${ANON_KEY}` };
-    Promise.all([
-      fetch(`${SUPABASE_URL}/rest/v1/agent_status?select=agent_id,status`, { headers }).then((r) => r.json()),
-      fetch(`${SUPABASE_URL}/rest/v1/tasks?select=agent_id,title&status=eq.in_progress&order=updated_at.desc`, { headers }).then((r) => r.json()),
-    ])
-      .then(([statuses, tasks]) => {
-        const statusMap: Record<string, string> = {};
-        if (Array.isArray(statuses))
-          statuses.forEach((s: { agent_id: string; status: string }) => {
-            statusMap[s.agent_id] = s.status;
-          });
-        const taskMap: Record<string, string> = {};
-        if (Array.isArray(tasks))
-          tasks.forEach((t: { agent_id: string; title: string }) => {
-            if (!taskMap[t.agent_id]) taskMap[t.agent_id] = t.title;
-          });
-        setAgents(
-          AGENTS_STATIC.map((a) => ({
-            ...a,
-            status: statusMap[a.id] || "standby",
-            activeTask: taskMap[a.id],
-          }))
-        );
-      })
-      .catch(() => {});
-  }, []);
+    try {
+      const [statuses, tasks] = await Promise.all([
+        fetch(`${SUPABASE_URL}/rest/v1/agent_status?select=agent_id,status`, { headers }).then((r) => r.json()),
+        fetch(`${SUPABASE_URL}/rest/v1/tasks?select=agent_id,title&status=eq.in_progress&order=updated_at.desc`, { headers }).then((r) => r.json()),
+      ]);
+      const statusMap: Record<string, string> = {};
+      if (Array.isArray(statuses))
+        statuses.forEach((s: { agent_id: string; status: string }) => {
+          statusMap[s.agent_id] = s.status;
+        });
+      const taskMap: Record<string, string> = {};
+      if (Array.isArray(tasks))
+        tasks.forEach((t: { agent_id: string; title: string }) => {
+          if (!taskMap[t.agent_id]) taskMap[t.agent_id] = t.title;
+        });
+      setAgents(
+        AGENTS_STATIC.map((a) => ({
+          ...a,
+          status: statusMap[a.id] || "standby",
+          activeTask: taskMap[a.id],
+        }))
+      );
+    } catch {}
+    finally { setRefreshing(false); }
+  };
+
+  useEffect(() => { fetchAgentStatus(); }, []);
 
   return (
     <div style={{ position: "absolute", inset: 0 }}>
+      {/* Botão atualizar status */}
+      <button
+        onClick={fetchAgentStatus}
+        disabled={refreshing}
+        style={{
+          position: "absolute", top: 12, right: 12, zIndex: 100,
+          background: refreshing ? "rgba(212,175,55,0.4)" : "rgba(212,175,55,0.15)",
+          border: "1px solid rgba(212,175,55,0.5)",
+          color: "#D4AF37", borderRadius: 8, padding: "6px 14px",
+          fontSize: 12, fontWeight: 600, cursor: refreshing ? "not-allowed" : "pointer",
+          display: "flex", alignItems: "center", gap: 6, transition: "all 0.2s",
+        }}
+      >
+        <span style={{ display: "inline-block", animation: refreshing ? "spin 1s linear infinite" : "none" }}>↻</span>
+        {refreshing ? "Atualizando..." : "Atualizar Status"}
+      </button>
+      <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
       <Canvas
         shadows
         camera={{ position: [30, 35, 30], fov: 35 }}
